@@ -32,6 +32,11 @@ public class GameFlowController : MonoBehaviour
     public AudioClip[] characterSelectVoices;
     public int currentCharacter = 0;
 
+    [Header("Settings Panels")]
+    public GameObject settingsMenuPanel;
+    public GameObject playerCountPanel;
+    public GameObject soundSettingsPanel;
+
     int selectingPlayer = 0;
     int[] selectedCharacters = new int[4];
 
@@ -231,10 +236,10 @@ public class GameFlowController : MonoBehaviour
         }
 
         if (characterSelectVoices != null &&
-            currentCharacter >= 0 &&
-            currentCharacter < characterSelectVoices.Length)
+    currentCharacter >= 0 &&
+    currentCharacter < characterSelectVoices.Length)
         {
-            AudioManager.Instance.PlaySEClip(characterSelectVoices[currentCharacter]);
+            AudioManager.Instance.PlayVoiceClip(characterSelectVoices[currentCharacter]);
         }
 
         selectingPlayer++;
@@ -286,16 +291,26 @@ public class GameFlowController : MonoBehaviour
     {
         AudioManager.Instance.PlaySE("menu_pause");
 
-        if (settingsPanel != null) settingsPanel.SetActive(true);
-        if (settingsButton != null) settingsButton.SetActive(false);
+        if (settingsPanel != null)
+            settingsPanel.SetActive(true);
+
+        if (settingsButton != null)
+            settingsButton.SetActive(false);
+
+        ShowSettingsMenu();
     }
 
     public void CloseSettings()
     {
         AudioManager.Instance.PlaySE("menu_cancel");
 
-        if (settingsPanel != null) settingsPanel.SetActive(false);
-        if (settingsButton != null) settingsButton.SetActive(true);
+        if (settingsPanel != null)
+            settingsPanel.SetActive(false);
+
+        if (settingsButton != null)
+            settingsButton.SetActive(true);
+
+        ShowSettingsMenu();
     }
 
     public void Set2Players()
@@ -317,5 +332,41 @@ public class GameFlowController : MonoBehaviour
         GameSession.PlayerCount = 4;
         UpdatePlayerSlots();
         CloseSettings();
+    }
+
+    void ShowSettingsMenu()
+    {
+        if (settingsMenuPanel != null)
+            settingsMenuPanel.SetActive(true);
+
+        if (playerCountPanel != null)
+            playerCountPanel.SetActive(false);
+
+        if (soundSettingsPanel != null)
+            soundSettingsPanel.SetActive(false);
+    }
+
+    public void OpenPlayerCountSettings()
+    {
+        AudioManager.Instance.PlaySE("menu_enter");
+
+        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
+        if (playerCountPanel != null) playerCountPanel.SetActive(true);
+        if (soundSettingsPanel != null) soundSettingsPanel.SetActive(false);
+    }
+
+    public void OpenSoundSettings()
+    {
+        AudioManager.Instance.PlaySE("menu_enter");
+
+        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
+        if (playerCountPanel != null) playerCountPanel.SetActive(false);
+        if (soundSettingsPanel != null) soundSettingsPanel.SetActive(true);
+    }
+
+    public void BackToSettingsMenu()
+    {
+        AudioManager.Instance.PlaySE("menu_cancel");
+        ShowSettingsMenu();
     }
 }

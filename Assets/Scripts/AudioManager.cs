@@ -19,10 +19,17 @@ public class AudioManager : MonoBehaviour
     public AudioClip bgmBattleIntro;
     public AudioClip bgmBattleMain;
 
+    [Header("SE / Voice")]
+    public AudioSource seSource;
+    public AudioSource voiceSource;
+
     public static AudioManager Instance;
 
-    public AudioSource seSource;
     public SoundEntry[] sounds;
+
+    float bgmVolume = 1f;
+    float seVolume = 1f;
+    float voiceVolume = 1f;
 
     void Awake()
     {
@@ -35,14 +42,35 @@ public class AudioManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
+
+    public void SetBGMVolume(float value)
+    {
+        bgmVolume = value;
+
+        if (bgmSource != null)
+            bgmSource.volume = bgmVolume;
+    }
+
+    public void SetSEVolume(float value)
+    {
+        seVolume = value;
+    }
+
+    public void SetVoiceVolume(float value)
+    {
+        voiceVolume = value;
+    }
+
     public void PlayBGM(AudioClip clip, bool loop = true)
     {
         if (bgmSource == null || clip == null) return;
 
         bgmSource.clip = clip;
         bgmSource.loop = loop;
+        bgmSource.volume = bgmVolume;
         bgmSource.Play();
     }
+
     public void PlayBattleBGM()
     {
         StopAllCoroutines();
@@ -52,45 +80,55 @@ public class AudioManager : MonoBehaviour
     IEnumerator PlayBattleSequence()
     {
         if (bgmSource == null) yield break;
+        if (bgmBattleIntro == null || bgmBattleMain == null) yield break;
 
-        // ① Intro再生（ループなし）
+        bgmSource.volume = bgmVolume;
         bgmSource.clip = bgmBattleIntro;
         bgmSource.loop = false;
         bgmSource.Play();
 
-        // ② Intro終わるまで待つ
         yield return new WaitForSeconds(bgmBattleIntro.length);
 
-        // ③ Mainループ開始
+        bgmSource.volume = bgmVolume;
         bgmSource.clip = bgmBattleMain;
         bgmSource.loop = true;
         bgmSource.Play();
     }
+
     public void PlaySE(string key)
     {
         if (seSource == null) return;
+        if (seVolume <= 0f) return;
 
         foreach (SoundEntry sound in sounds)
         {
             if (sound.key == key && sound.clip != null)
             {
-                seSource.PlayOneShot(sound.clip);
+                seSource.PlayOneShot(sound.clip, seVolume);
                 return;
             }
         }
 
         Debug.LogWarning($"SE not found: {key}");
     }
+
     public void PlaySEClip(AudioClip clip)
     {
-        if (seSource == null || clip == null) return;
-        seSource.PlayOneShot(clip);
+        if (seSource == null) return;
+        if (clip == null) return;
+        if (seVolume <= 0f) return;
+
+        seSource.Stop();
+        seSource.PlayOneShot(clip, seVolume);
     }
-    void Update()
-{
-    if (Input.GetKeyDown(KeyCode.Space))
+
+    public void PlayVoiceClip(AudioClip clip)
     {
-        AudioManager.Instance.PlaySE("grave_toss");
+        if (voiceSource == null) return;
+        if (clip == null) return;
+        if (voiceVolume <= 0f) return;
+
+        voiceSource.Stop();
+        voiceSource.PlayOneShot(clip, voiceVolume);
     }
-}
 }
