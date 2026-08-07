@@ -6,7 +6,8 @@ public enum GraveFaceResult
     Front,    // 赤
     Back,     // 青
     Side,     // 黄
-    Vertical  // 緑
+    Vertical,  // 緑
+    Reverse //逆立ち
 }
 
 public class GraveController : MonoBehaviour
@@ -131,18 +132,30 @@ public class GraveController : MonoBehaviour
     float absRight = Mathf.Abs(dotRight);
     float absForward = Mathf.Abs(dotForward);
 
-    // =====================
-    // 縦面（立っている）
-    // =====================
-    if (absUp >= absRight && absUp >= absForward)
-    {
-        return GraveFaceResult.Vertical;
-    }
+        // =====================
+        // 縦面（立っている）
+        // =====================
+        if (absUp >= absRight && absUp >= absForward)
+        {
+            // judgePivot.up が上向き
+            // → 正立
+            if (dotUp > 0f)
+            {
+                return GraveFaceResult.Vertical;
+            }
 
-    // =====================
-    // 表・裏
-    // =====================
-    if (absForward >= absRight)
+            // judgePivot.up が下向き
+            // → 逆立ち
+            else
+            {
+                return GraveFaceResult.Reverse;
+            }
+        }
+
+        // =====================
+        // 表・裏
+        // =====================
+        if (absForward >= absRight)
     {
             return dotForward > 0f
                 ? GraveFaceResult.Back: 

@@ -55,7 +55,11 @@ public class GameManager : MonoBehaviour
     public Sprite[] characterLargeSprites;      // CurrentPlayerPanel用
     public string[] characterNames;             // キャラ名（今は未使用でもOK）
 
-    
+    [Header("Evolution Settings")]
+
+    [SerializeField]
+    private bool autoEvolutionByMP = true;
+
     [System.Serializable]
     public class PlayerEvolutionSprites
     {
@@ -84,6 +88,7 @@ public class GameManager : MonoBehaviour
     public Material blueMat;
     public Material yellowMat;
     public Material greenMat;
+    public Material purpleMat;
     public Material orangeMat;
 
     [Header("Grave Throw")]
@@ -157,7 +162,7 @@ public class GameManager : MonoBehaviour
     private int[] playerMP = new int[4]; 
     private bool[] playerMistPlusBuff = new bool[4];
     private bool[] playerCakeBuff = new bool[4];
-    private const int MAX_MP = 30;
+    private const int MAX_MP = 20;
 
     [Header("Used Mist UI")]
     public Image usedMistImage;              // Used_mist
@@ -165,6 +170,18 @@ public class GameManager : MonoBehaviour
 
     public Transform currentPlayerMistHolder; // CurrentPlayer_mist
     public GameObject usedMistIconPrefab;     // ImageだけのPrefab
+
+    [Header("Evolution Settings")]
+
+    [SerializeField]
+    private int mpEvolutionCost = 20;
+
+    // true  = ターン終了時にMP自動進化
+    // false = 自動進化しない（将来Button式などに使える）
+    // MPによるLevel3進化を許可するか
+    [SerializeField]
+    private bool allowFinalEvolutionByMP = true;
+
     public enum GameState
     {
         Idle,
@@ -991,19 +1008,15 @@ public class GameManager : MonoBehaviour
     }
     void AddMP(int playerIndex, int amount)
     {
-        if (playerIndex < 0 || playerIndex >= playerMP.Length) return;
+        if (playerIndex < 0 || playerIndex >= playerMP.Length)
+            return;
 
+        // MPを加算するだけ
         playerMP[playerIndex] += amount;
 
-        if (playerMP[playerIndex] >= MAX_MP)
-        {
-            playerMP[playerIndex] -= MAX_MP;
-            AddEvolutionLevel(playerIndex, 1);
-
-            Debug.Log($"Player {playerIndex + 1} Evolution via MP!");
-        }
-
-        Debug.Log($"Player {playerIndex + 1} MP: {playerMP[playerIndex]}");
+        Debug.Log(
+            $"Player {playerIndex + 1} MP: {playerMP[playerIndex]}"
+        );
 
         RefreshAllPlayerUI();
     }
@@ -1326,6 +1339,19 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                     );
 
                     break;
+
+                case GraveFaceResult.Reverse:
+
+                    if (renderer != null)
+                        renderer.material = purpleMat;
+
+                    totalSteps += 32;
+
+                    Debug.Log(
+                        $"[Reverse] Player {currentPlayerIndex + 1} : 32マス"
+                    );
+
+                    break;
             }
         }
 
@@ -1440,6 +1466,7 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         int backCount = 0;
         int sideCount = 0;
         int verticalCount = 0;
+        int reverseCount = 0;
 
         foreach (GameObject graveObj in spawnedGraves)
         {
@@ -1466,6 +1493,10 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 case GraveFaceResult.Vertical:
                     verticalCount++;
                     break;
+
+                case GraveFaceResult.Reverse:
+                    reverseCount++;
+                    break;
             }
         }
 
@@ -1475,12 +1506,14 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
             : 0;
 
         Debug.Log(
-            $"[Toss結果] Player {currentPlayerIndex + 1} / " +
-            $"表:{frontCount} 裏:{backCount} 横:{sideCount} 縦:{verticalCount} / " +
-            $"進むマス:{totalSteps} / " +
-            $"Mist増加:{baseMistGain}" +
-            (plusBonus > 0 ? $" (+Plus1で+{plusBonus} → 合計{baseMistGain + plusBonus})" : "") +
-            (playerCakeBuff[currentPlayerIndex] ? " / Cake有効" : ""));
+    $"[Toss結果] Player {currentPlayerIndex + 1} / " +
+    $"表:{frontCount} 裏:{backCount} 横:{sideCount} " +
+    $"縦:{verticalCount} 逆:{reverseCount} / " +
+    $"進むマス:{totalSteps} / " +
+    $"Mist増加:{baseMistGain}" +
+    (plusBonus > 0 ? $" (+Plus1で+{plusBonus} → 合計{baseMistGain + plusBonus})" : "") +
+    (playerCakeBuff[currentPlayerIndex] ? " / Cake有効" : "")
+);
     }
 
     void PlayFaceDecidedSE()
@@ -1561,82 +1594,33 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         Vector2Int stopGrid =
     boardManager.outerPath[CurrentPathIndex];
 
-        PlayerController pc =
-            CurrentPlayer.GetComponent<PlayerController>();
-
-        int evolutionLevel =
-            GetPlayerEvolutionLevel(currentPlayerIndex);
-
         bool isCorner =
             IsCorner(stopGrid);
 
-        bool onMyStart =
-            CurrentPathIndex ==
-            playerStartPathIndices[currentPlayerIndex];
-
-        // 今回ちゃんと移動したか
+        // 0マス進化防止
         bool movedThisTurn =
             totalSteps > 0;
 
 
-        // =========================================================
-        // Level 0 → 1
-        // Level 1 → 2
-        // 1マス以上移動して四隅に到達した場合のみ進化
-        // =========================================================
+        // =========================================
+        // 四隅進化
+        // =========================================
 
-        if (
-            movedThisTurn &&
-            evolutionLevel < 2 &&
-            isCorner
-        )
+        if (movedThisTurn && isCorner)
         {
-            pc.AdvanceEvolution();
-            AddEvolutionLevel(
-                currentPlayerIndex,
-                1
-            );
+            bool won =
+                TryAdvanceEvolution(
+                    currentPlayerIndex
+                );
 
-            Debug.Log(
-                $"Player {currentPlayerIndex + 1} Evolution " +
-                $"Level {evolutionLevel} → Level {evolutionLevel + 1}"
-            );
+            // Level3になった場合は
+            // TryAdvanceEvolution内ですでに勝利処理済み
+            if (won)
+                yield break;
         }
 
 
-        // =========================================================
-        // Level 2 → 3
-        // 1マス以上移動して自分のスタート地点に到達
-        // → 即勝利
-        // =========================================================
-
-        else if (
-            movedThisTurn &&
-            evolutionLevel == 2 &&
-            onMyStart
-        )
-        {
-            pc.AdvanceEvolution();
-            AddEvolutionLevel(
-                currentPlayerIndex,
-                1
-            );
-
-            Debug.Log(
-                $"Player {currentPlayerIndex + 1} Evolution Level 2 → Level 3"
-            );
-
-            Debug.Log(
-                $"🏆 Player {currentPlayerIndex + 1} WIN!"
-            );
-
-            GoToWinScene(
-                currentPlayerIndex
-            );
-
-            yield break;
-        }
-
+        // 通常ならターン終了
         NextTurn();
     }
     void CheckPlayerTread()
@@ -1698,6 +1682,9 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
     }
     void NextTurn()
     {
+        int endingPlayerIndex =
+            currentPlayerIndex;
+
         ClearCurrentPlayerUsedMistIcons();
 
         if (usedMistImage != null)
@@ -1708,15 +1695,46 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         ClearSpawnedGraves();
         ResetMistZoomImmediate();
 
-        ProcessEndOfTurn(currentPlayerIndex);
+        ProcessEndOfTurn(
+            endingPlayerIndex
+        );
 
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.Count;
+
+        // =========================================
+        // ターン終了時 MP進化判定
+        // =========================================
+
+        bool won =
+            ProcessEndTurnMPEvolution(
+                endingPlayerIndex
+            );
+
+        // MP進化でLevel3になった場合、
+        // TryAdvanceEvolution内ですでに勝利処理済み
+        if (won)
+            return;
+
+
+        // =========================================
+        // 次プレイヤーへ
+        // =========================================
+
+        currentPlayerIndex =
+            (currentPlayerIndex + 1)
+            % players.Count;
 
         EnterTurnStart();
+
         RefreshAllPlayerUI();
+
         FadeCurrentPlayerPanel(true);
 
-        AudioManager.Instance.PlaySE("game_turnSwitch");
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySE(
+                "game_turnSwitch"
+            );
+        }
     }
     void ClearCurrentPlayerUsedMistIcons()
     {
@@ -1820,7 +1838,90 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
         RefreshAllPlayerUI();
     }
+    bool TryAdvanceEvolution(int playerIndex)
+    {
+        if (playerIndex < 0 || playerIndex >= players.Count)
+            return false;
 
+        int currentLevel =
+            GetPlayerEvolutionLevel(playerIndex);
+
+        // すでにLevel3なら何もしない
+        if (currentLevel >= 3)
+            return false;
+
+        PlayerController pc =
+            players[playerIndex].GetComponent<PlayerController>();
+
+        if (pc == null)
+            return false;
+
+        // 進化
+        pc.AdvanceEvolution();
+
+        AddEvolutionLevel(
+            playerIndex,
+            1
+        );
+
+        int newLevel =
+            GetPlayerEvolutionLevel(playerIndex);
+
+        Debug.Log(
+            $"[Evolution] Player {playerIndex + 1} : " +
+            $"Level {currentLevel} → Level {newLevel}"
+        );
+
+        // Level3になった瞬間に勝利
+        if (newLevel >= 3)
+        {
+            Debug.Log(
+                $"🏆 Player {playerIndex + 1} WIN!"
+            );
+
+            GoToWinScene(playerIndex);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    bool ProcessEndTurnMPEvolution(int playerIndex)
+    {
+        if (!autoEvolutionByMP)
+            return false;
+
+        if (playerIndex < 0 || playerIndex >= playerMP.Length)
+            return false;
+
+        int currentLevel =
+            GetPlayerEvolutionLevel(playerIndex);
+
+        // すでにLevel3なら何もしない
+        if (currentLevel >= 3)
+            return false;
+
+        // MPが足りない
+        if (playerMP[playerIndex] < mpEvolutionCost)
+            return false;
+
+        // 進化に必要なMPを消費
+        playerMP[playerIndex] -= mpEvolutionCost;
+
+        Debug.Log(
+            $"[MP Evolution] Player {playerIndex + 1} : " +
+            $"{mpEvolutionCost} MP消費"
+        );
+
+        // 共通進化処理
+        bool won =
+            TryAdvanceEvolution(playerIndex);
+
+        RefreshAllPlayerUI();
+
+        return won;
+    }
     public int GetCurrentPlayerIndex()
     {
         return currentPlayerIndex;

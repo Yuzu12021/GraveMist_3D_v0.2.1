@@ -281,7 +281,7 @@ GameObject:
   - component: {fileID: 53876680}
   m_Layer: 0
   m_Name: Board
-  m_TagString: Untagged
+  m_TagString: Board
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -630,7 +630,7 @@ GameObject:
   - component: {fileID: 186378625}
   - component: {fileID: 186378624}
   m_Layer: 5
-  m_Name: haikei
+  m_Name: haikei_3P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1123,7 +1123,7 @@ GameObject:
   m_Component:
   - component: {fileID: 280401371}
   m_Layer: 5
-  m_Name: Content
+  m_Name: Content_4P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1461,7 +1461,7 @@ GameObject:
   - component: {fileID: 309725263}
   - component: {fileID: 309725264}
   m_Layer: 5
-  m_Name: character_box
+  m_Name: character_box_2P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1670,7 +1670,7 @@ GameObject:
   - component: {fileID: 335183659}
   - component: {fileID: 335183660}
   m_Layer: 5
-  m_Name: PlayerNumber
+  m_Name: PlayerNumber_3P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1821,7 +1821,7 @@ GameObject:
   - component: {fileID: 390490133}
   - component: {fileID: 390490134}
   m_Layer: 5
-  m_Name: CharacterIcon
+  m_Name: CharacterIcon_2P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2253,7 +2253,7 @@ GameObject:
   - component: {fileID: 462978409}
   - component: {fileID: 462978410}
   m_Layer: 5
-  m_Name: character_box
+  m_Name: character_box_4P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2713,7 +2713,7 @@ GameObject:
   - component: {fileID: 536875095}
   - component: {fileID: 536875094}
   m_Layer: 5
-  m_Name: haikei
+  m_Name: haikei_4P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2861,7 +2861,7 @@ GameObject:
   m_Component:
   - component: {fileID: 581878238}
   m_Layer: 5
-  m_Name: Content
+  m_Name: Content_2P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3649,7 +3649,7 @@ GameObject:
   m_Component:
   - component: {fileID: 883066188}
   m_Layer: 5
-  m_Name: Content
+  m_Name: Content_3P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3907,6 +3907,7 @@ MonoBehaviour:
   - "\u30E4\u30C3\u30C4\u30A3\u30FC"
   - "\u30B1\u30F3\u30BB\u30EB"
   - "\u30AF\u30FC\u30EB\uFF06\u30D3\u30BA"
+  autoEvolutionByMP: 1
   evolutionInitialSprite: {fileID: 21300000, guid: d42ce24af48af5b409ae2db8875de7b4, type: 3}
   playerEvolutionSprites:
   - level1: {fileID: 21300000, guid: 56341a06c249a9d42aa7ebbe5e615680, type: 3}
@@ -3939,6 +3940,7 @@ MonoBehaviour:
   blueMat: {fileID: 2100000, guid: fadb2d3902d08f5499c62427a0c2705a, type: 2}
   yellowMat: {fileID: 2100000, guid: 1818809cfb5a803448072af7b1033374, type: 2}
   greenMat: {fileID: 2100000, guid: e34a567ab47c8f44f91b618fc3d8fadb, type: 2}
+  purpleMat: {fileID: 2100000, guid: db28fd7fa54350845884be7e31d15745, type: 2}
   orangeMat: {fileID: 2100000, guid: b5be7e26e2f93184aa444012749305e4, type: 2}
   spawnHeight: 5
   baseForce: 5
@@ -4014,6 +4016,8 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 9cf0f007b4aa25c42b4f2c0fe648b8b4, type: 3}
   currentPlayerMistHolder: {fileID: 890336589}
   usedMistIconPrefab: {fileID: 1716449580009206791, guid: 852cac66a223066468db5875269ca4f0, type: 3}
+  mpEvolutionCost: 20
+  allowFinalEvolutionByMP: 1
   currentState: 0
   holeMarkerPrefab: {fileID: 3117015758063649390, guid: 0257324883d602b4891d9af63ec7a083, type: 3}
   holeSprites:
@@ -4050,7 +4054,7 @@ GameObject:
   - component: {fileID: 964112193}
   - component: {fileID: 964112194}
   m_Layer: 5
-  m_Name: EvolutionGauge
+  m_Name: EvolutionGauge_4P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4172,7 +4176,7 @@ GameObject:
   - component: {fileID: 964495687}
   - component: {fileID: 964495688}
   m_Layer: 5
-  m_Name: CharacterIcon
+  m_Name: CharacterIcon_3P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -4457,6 +4461,7 @@ MonoBehaviour:
   bgmBattleIntro: {fileID: 8300000, guid: 98e2702a6c7fc3b43a45caf7cdadb75f, type: 3}
   bgmBattleMain: {fileID: 8300000, guid: a769ef297ae53e742ba96329bec30db5, type: 3}
   seSource: {fileID: 978147552}
+  voiceSource: {fileID: 0}
   sounds:
   - key: grave_bounce
     clip: {fileID: 8300000, guid: 5db2db3c5d97a1c47a7fab17b0fef192, type: 3}
@@ -5091,7 +5096,7 @@ GameObject:
   - component: {fileID: 1096892641}
   - component: {fileID: 1096892642}
   m_Layer: 5
-  m_Name: EvolutionGauge
+  m_Name: EvolutionGauge_3P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5287,7 +5292,7 @@ GameObject:
   - component: {fileID: 1130748134}
   - component: {fileID: 1130748135}
   m_Layer: 5
-  m_Name: PlayerNumber
+  m_Name: PlayerNumber_2P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5362,7 +5367,7 @@ GameObject:
   - component: {fileID: 1190286183}
   - component: {fileID: 1190286182}
   m_Layer: 5
-  m_Name: haikei
+  m_Name: haikei_1P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5437,7 +5442,7 @@ GameObject:
   - component: {fileID: 1194865712}
   - component: {fileID: 1194865713}
   m_Layer: 5
-  m_Name: PlayerNumber
+  m_Name: PlayerNumber_4P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5753,7 +5758,7 @@ GameObject:
   - component: {fileID: 1256011575}
   - component: {fileID: 1256011574}
   m_Layer: 5
-  m_Name: haikei
+  m_Name: haikei_2P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5905,7 +5910,7 @@ GameObject:
   - component: {fileID: 1317222038}
   - component: {fileID: 1317222039}
   m_Layer: 5
-  m_Name: EvolutionGauge
+  m_Name: EvolutionGauge_2P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6251,7 +6256,7 @@ GameObject:
   - component: {fileID: 1423638615}
   - component: {fileID: 1423638616}
   m_Layer: 5
-  m_Name: character_box
+  m_Name: character_box_1P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6592,7 +6597,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1548080085}
   m_Layer: 5
-  m_Name: Content
+  m_Name: Content_1P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6962,7 +6967,7 @@ GameObject:
   - component: {fileID: 1611821936}
   - component: {fileID: 1611821937}
   m_Layer: 5
-  m_Name: CharacterIcon
+  m_Name: CharacterIcon_4P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7686,7 +7691,7 @@ GameObject:
   - component: {fileID: 1750561671}
   - component: {fileID: 1750561672}
   m_Layer: 5
-  m_Name: EvolutionGauge
+  m_Name: EvolutionGauge_1P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7886,7 +7891,7 @@ GameObject:
   - component: {fileID: 1795102865}
   - component: {fileID: 1795102866}
   m_Layer: 5
-  m_Name: character_box
+  m_Name: character_box_3P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8291,7 +8296,7 @@ GameObject:
   - component: {fileID: 1866150291}
   - component: {fileID: 1866150292}
   m_Layer: 5
-  m_Name: PlayerNumber
+  m_Name: PlayerNumbe_1P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8797,7 +8802,7 @@ GameObject:
   - component: {fileID: 2141906346}
   - component: {fileID: 2141906347}
   m_Layer: 5
-  m_Name: CharacterIcon
+  m_Name: CharacterIcon_1P
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
