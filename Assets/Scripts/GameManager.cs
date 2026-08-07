@@ -1163,69 +1163,187 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
     // =========================================================
     void OnGraveStopped(GraveController grave)
     {
-        if (stoppedGraves.Contains(grave)) return;
+        // 同じGraveから複数回停止通知が来ても1回だけ処理
+        if (stoppedGraves.Contains(grave))
+            return;
+
         stoppedGraves.Add(grave);
+        stoppedCount++;
 
-        // 盤外チェック
-        if (grave.IsOutOfBoard())
+        // 全Graveが停止するまで待つ
+        if (stoppedCount < graveCount)
+            return;
+
+
+        // =========================================================
+        // 全Grave停止後に投擲の有効 / 無効を判定
+        // =========================================================
+
+        // ① 1個でも盤外なら無効
+        hasAnyFallen = false;
+
+        foreach (GameObject g in spawnedGraves)
         {
-            hasAnyFallen = true;
-        }
-        else
-        {
-            switch (grave.GetResult())
+            if (g == null)
+                continue;
+
+            GraveController gc =
+                g.GetComponent<GraveController>();
+
+            if (gc != null && gc.IsOutOfBoard())
             {
-                case GraveFaceResult.Front:
-                    grave.GetComponent<Renderer>().material = redMat;
-                    totalSteps += 1;
-                    break;
-
-                case GraveFaceResult.Back:
-                    grave.GetComponent<Renderer>().material = blueMat;
-                    break;
-
-                case GraveFaceResult.Side:
-                    grave.GetComponent<Renderer>().material = yellowMat;
-                    totalSteps += 5;
-                    GiveMist(currentPlayerIndex, 1);
-                    break;
-
-                case GraveFaceResult.Vertical:
-                    grave.GetComponent<Renderer>().material = greenMat;
-                    totalSteps += 10;
-                    GiveMist(currentPlayerIndex, 2);
-                    break;
+                hasAnyFallen = true;
+                break;
             }
         }
 
-        stoppedCount++;
-        if (stoppedCount < graveCount) return;
 
-        // =========================
-        // 全グレイブ停止後の処理
-        // =========================
+        // ② 1組でもGrave同士が重なっていたら無効
+        bool hasAnyOverlap =
+            HasAnyGraveOverlap();
 
-        // 失敗時（盤外あり）
-        if (hasAnyFallen)
+
+        // =========================================================
+        // 無効投擲
+        // =========================================================
+
+        if (hasAnyFallen || hasAnyOverlap)
         {
-            AudioManager.Instance.PlaySE("grave_miss");
+            if (hasAnyFallen)
+            {
+                Debug.Log(
+                    $"[Toss無効] Player {currentPlayerIndex + 1}: 盤外のGraveがあります"
+                );
+            }
 
+            if (hasAnyOverlap)
+            {
+                Debug.Log(
+                    $"[Toss無効] Player {currentPlayerIndex + 1}: Grave同士が重なっています"
+                );
+            }
+
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySE(
+                    "grave_miss"
+                );
+            }
+
+
+            // 全Graveを失敗色にする
             foreach (GameObject g in spawnedGraves)
             {
-                if (g != null)
-                    g.GetComponent<Renderer>().material = orangeMat;
+                if (g == null)
+                    continue;
+
+                Renderer renderer =
+                    g.GetComponent<Renderer>();
+
+                if (renderer != null)
+                {
+                    renderer.material =
+                        orangeMat;
+                }
             }
 
+
+            // 出目・Mistは一切取得せず次のターンへ
             NextTurn();
+
             return;
         }
 
-        //  Cakeバフ
+
+        // =========================================================
+        // ここまで来たら有効な投擲
+        // この段階で初めて出目とMistを計算する
+        // =========================================================
+
+        totalSteps = 0;
+
+        foreach (GameObject g in spawnedGraves)
+        {
+            if (g == null)
+                continue;
+
+            GraveController gc =
+                g.GetComponent<GraveController>();
+
+            Renderer renderer =
+                g.GetComponent<Renderer>();
+
+            if (gc == null)
+                continue;
+
+
+            switch (gc.GetResult())
+            {
+                case GraveFaceResult.Front:
+
+                    if (renderer != null)
+                        renderer.material = redMat;
+
+                    totalSteps += 1;
+
+                    break;
+
+
+                case GraveFaceResult.Back:
+
+                    if (renderer != null)
+                        renderer.material = blueMat;
+
+                    break;
+
+
+                case GraveFaceResult.Side:
+
+                    if (renderer != null)
+                        renderer.material = yellowMat;
+
+                    totalSteps += 5;
+
+                    GiveMist(
+                        currentPlayerIndex,
+                        1
+                    );
+
+                    break;
+
+
+                case GraveFaceResult.Vertical:
+
+                    if (renderer != null)
+                        renderer.material = greenMat;
+
+                    totalSteps += 10;
+
+                    GiveMist(
+                        currentPlayerIndex,
+                        2
+                    );
+
+                    break;
+            }
+        }
+
+
+        // =========================================================
+        // Cake
+        // =========================================================
+
         if (playerCakeBuff[currentPlayerIndex])
         {
-            Debug.Log($"Player {currentPlayerIndex + 1} の Cake 発動: {totalSteps} → {totalSteps * 2}");
+            Debug.Log(
+                $"Player {currentPlayerIndex + 1} の Cake 発動: " +
+                $"{totalSteps} → {totalSteps * 2}"
+            );
+
             totalSteps *= 2;
         }
+
 
         // 出目確定SE
         PlayFaceDecidedSE();
@@ -1233,11 +1351,88 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // ログ
         LogTossResult();
 
-        // ▶ 移動開始
-        if (moveCoroutine != null)
-            StopCoroutine(moveCoroutine);
 
-        moveCoroutine = StartCoroutine(MovePlayerCoroutine(totalSteps));
+        // =========================================================
+        // プレイヤー移動
+        // =========================================================
+
+        if (moveCoroutine != null)
+        {
+            StopCoroutine(
+                moveCoroutine
+            );
+        }
+
+        moveCoroutine =
+            StartCoroutine(
+                MovePlayerCoroutine(totalSteps)
+            );
+    }
+    bool HasAnyGraveOverlap()
+    {
+        for (int i = 0; i < spawnedGraves.Count; i++)
+        {
+            GameObject graveA =
+                spawnedGraves[i];
+
+            if (graveA == null)
+                continue;
+
+            Collider colliderA =
+                graveA.GetComponent<Collider>();
+
+            if (colliderA == null)
+                continue;
+
+
+            for (int j = i + 1; j < spawnedGraves.Count; j++)
+            {
+                GameObject graveB =
+                    spawnedGraves[j];
+
+                if (graveB == null)
+                    continue;
+
+                Collider colliderB =
+                    graveB.GetComponent<Collider>();
+
+                if (colliderB == null)
+                    continue;
+
+
+                Vector3 direction;
+                float distance;
+
+
+                bool isOverlapping =
+                    Physics.ComputePenetration(
+                        colliderA,
+                        colliderA.transform.position,
+                        colliderA.transform.rotation,
+
+                        colliderB,
+                        colliderB.transform.position,
+                        colliderB.transform.rotation,
+
+                        out direction,
+                        out distance
+                    );
+
+
+                if (isOverlapping && distance > 0.001f)
+                {
+                    Debug.Log(
+                        $"[Grave重なり] " +
+                        $"{graveA.name} × {graveB.name} " +
+                        $"侵入量: {distance:F4}"
+                    );
+
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
     void LogTossResult()
     {
@@ -1363,8 +1558,11 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
             }
         }
 
-        Vector2Int stopGrid = boardManager.outerPath[CurrentPathIndex];
-        PlayerController pc = CurrentPlayer.GetComponent<PlayerController>();
+        Vector2Int stopGrid =
+    boardManager.outerPath[CurrentPathIndex];
+
+        PlayerController pc =
+            CurrentPlayer.GetComponent<PlayerController>();
 
         int evolutionLevel =
             GetPlayerEvolutionLevel(currentPlayerIndex);
@@ -1376,17 +1574,28 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
             CurrentPathIndex ==
             playerStartPathIndices[currentPlayerIndex];
 
+        // 今回ちゃんと移動したか
+        bool movedThisTurn =
+            totalSteps > 0;
+
 
         // =========================================================
         // Level 0 → 1
         // Level 1 → 2
-        // 四隅に到達したら自動進化
+        // 1マス以上移動して四隅に到達した場合のみ進化
         // =========================================================
 
-        if (evolutionLevel < 2 && isCorner)
+        if (
+            movedThisTurn &&
+            evolutionLevel < 2 &&
+            isCorner
+        )
         {
             pc.AdvanceEvolution();
-            AddEvolutionLevel(currentPlayerIndex, 1);
+            AddEvolutionLevel(
+                currentPlayerIndex,
+                1
+            );
 
             Debug.Log(
                 $"Player {currentPlayerIndex + 1} Evolution " +
@@ -1397,14 +1606,21 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
         // =========================================================
         // Level 2 → 3
-        // 自分のスタート地点に到達したら最終進化
-        // その瞬間に勝利
+        // 1マス以上移動して自分のスタート地点に到達
+        // → 即勝利
         // =========================================================
 
-        else if (evolutionLevel == 2 && onMyStart)
+        else if (
+            movedThisTurn &&
+            evolutionLevel == 2 &&
+            onMyStart
+        )
         {
             pc.AdvanceEvolution();
-            AddEvolutionLevel(currentPlayerIndex, 1);
+            AddEvolutionLevel(
+                currentPlayerIndex,
+                1
+            );
 
             Debug.Log(
                 $"Player {currentPlayerIndex + 1} Evolution Level 2 → Level 3"
@@ -1414,14 +1630,12 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 $"🏆 Player {currentPlayerIndex + 1} WIN!"
             );
 
-            GoToWinScene(currentPlayerIndex);
+            GoToWinScene(
+                currentPlayerIndex
+            );
+
             yield break;
         }
-
-
-        // =========================================================
-        // ターン終了
-        // =========================================================
 
         NextTurn();
     }
