@@ -495,7 +495,14 @@ public class GameManager : MonoBehaviour
             players.Add(p);
 
             int playerIndex = players.Count - 1;
-            pc.SetPlayerIndex(playerIndex);
+
+            int characterIndex =
+                GameSession.PlayerCharacters[playerIndex];
+
+            pc.SetPlayerData(
+                playerIndex,
+                characterIndex
+            );
 
             int pathIndex = boardManager.outerPath.IndexOf(grid);
             playerPathIndices.Add(pathIndex);
