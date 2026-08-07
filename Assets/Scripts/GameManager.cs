@@ -1366,31 +1366,62 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         Vector2Int stopGrid = boardManager.outerPath[CurrentPathIndex];
         PlayerController pc = CurrentPlayer.GetComponent<PlayerController>();
 
-        bool wasFinal = pc.IsFinalStage();
+        int evolutionLevel =
+            GetPlayerEvolutionLevel(currentPlayerIndex);
 
-        if (IsCorner(stopGrid))
+        bool isCorner =
+            IsCorner(stopGrid);
+
+        bool onMyStart =
+            CurrentPathIndex ==
+            playerStartPathIndices[currentPlayerIndex];
+
+
+        // =========================================================
+        // Level 0 → 1
+        // Level 1 → 2
+        // 四隅に到達したら自動進化
+        // =========================================================
+
+        if (evolutionLevel < 2 && isCorner)
         {
-            if (GetPlayerEvolutionLevel(currentPlayerIndex) < 3)
-            {
-                pc.AdvanceEvolution();
-                AddEvolutionLevel(currentPlayerIndex, 1);
-            }
-            else
-            {
-                pc.AdvanceEvolution();
-            }
+            pc.AdvanceEvolution();
+            AddEvolutionLevel(currentPlayerIndex, 1);
+
+            Debug.Log(
+                $"Player {currentPlayerIndex + 1} Evolution " +
+                $"Level {evolutionLevel} → Level {evolutionLevel + 1}"
+            );
         }
 
-        bool isFinalNow = pc.IsFinalStage();
-        bool becameFinalHere = (!wasFinal && isFinalNow);
-        bool onMyStart = CurrentPathIndex == playerStartPathIndices[currentPlayerIndex];
 
-        if (isFinalNow && onMyStart && !becameFinalHere)
+        // =========================================================
+        // Level 2 → 3
+        // 自分のスタート地点に到達したら最終進化
+        // その瞬間に勝利
+        // =========================================================
+
+        else if (evolutionLevel == 2 && onMyStart)
         {
-            Debug.Log($"🏆 Player {currentPlayerIndex + 1} WIN!");
+            pc.AdvanceEvolution();
+            AddEvolutionLevel(currentPlayerIndex, 1);
+
+            Debug.Log(
+                $"Player {currentPlayerIndex + 1} Evolution Level 2 → Level 3"
+            );
+
+            Debug.Log(
+                $"🏆 Player {currentPlayerIndex + 1} WIN!"
+            );
+
             GoToWinScene(currentPlayerIndex);
             yield break;
         }
+
+
+        // =========================================================
+        // ターン終了
+        // =========================================================
 
         NextTurn();
     }

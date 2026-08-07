@@ -1068,7 +1068,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2000305844}
         m_TargetAssemblyTypeName: GameFlowController, Assembly-CSharp
-        m_MethodName: Set4Players
+        m_MethodName: BackToSettingsMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3989,7 +3989,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Content: {fileID: 908912500}
   m_Horizontal: 1
-  m_Vertical: 1
+  m_Vertical: 0
   m_MovementType: 1
   m_Elasticity: 0.1
   m_Inertia: 1
@@ -5709,7 +5709,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2000305844}
         m_TargetAssemblyTypeName: GameFlowController, Assembly-CSharp
-        m_MethodName: Set4Players
+        m_MethodName: BackToSettingsMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
