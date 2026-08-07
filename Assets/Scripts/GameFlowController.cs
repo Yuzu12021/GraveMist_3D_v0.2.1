@@ -60,6 +60,20 @@ public class GameFlowController : MonoBehaviour
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
 
+        // SettingButtonは表示
+        if (settingsButton != null)
+            settingsButton.SetActive(true);
+
+        // 念のため子Panelも全部OFF
+        if (settingsMenuPanel != null)
+            settingsMenuPanel.SetActive(false);
+
+        if (playerCountPanel != null)
+            playerCountPanel.SetActive(false);
+
+        if (soundSettingsPanel != null)
+            soundSettingsPanel.SetActive(false);
+
         UpdatePlayerSlots();
         UpdateSelectingPlayerUI();
         ResetPlayerSlotIcons();
@@ -291,12 +305,15 @@ public class GameFlowController : MonoBehaviour
     {
         AudioManager.Instance.PlaySE("menu_pause");
 
+        // Settings全体を表示
         if (settingsPanel != null)
             settingsPanel.SetActive(true);
 
+        // SettingButtonを隠す
         if (settingsButton != null)
             settingsButton.SetActive(false);
 
+        // 最初はSettingMenuPanelだけ表示
         ShowSettingsMenu();
     }
 
@@ -304,32 +321,44 @@ public class GameFlowController : MonoBehaviour
     {
         AudioManager.Instance.PlaySE("menu_cancel");
 
+        // Settings全体を閉じる
         if (settingsPanel != null)
             settingsPanel.SetActive(false);
 
+        // SettingButtonを再表示
         if (settingsButton != null)
             settingsButton.SetActive(true);
+
+        // 念のため内部Panelもリセット
+        if (settingsMenuPanel != null)
+            settingsMenuPanel.SetActive(false);
+
+        if (playerCountPanel != null)
+            playerCountPanel.SetActive(false);
+
+        if (soundSettingsPanel != null)
+            soundSettingsPanel.SetActive(false);
     }
 
     public void Set2Players()
     {
         GameSession.PlayerCount = 2;
         UpdatePlayerSlots();
-        CloseSettings();
+        ShowSettingsMenu();
     }
 
     public void Set3Players()
     {
         GameSession.PlayerCount = 3;
         UpdatePlayerSlots();
-        CloseSettings();
+        ShowSettingsMenu();
     }
 
     public void Set4Players()
     {
         GameSession.PlayerCount = 4;
         UpdatePlayerSlots();
-        CloseSettings();
+        ShowSettingsMenu();
     }
 
     void ShowSettingsMenu()
@@ -348,23 +377,34 @@ public class GameFlowController : MonoBehaviour
     {
         AudioManager.Instance.PlaySE("menu_enter");
 
-        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
-        if (playerCountPanel != null) playerCountPanel.SetActive(true);
-        if (soundSettingsPanel != null) soundSettingsPanel.SetActive(false);
+        if (settingsMenuPanel != null)
+            settingsMenuPanel.SetActive(false);
+
+        if (playerCountPanel != null)
+            playerCountPanel.SetActive(true);
+
+        if (soundSettingsPanel != null)
+            soundSettingsPanel.SetActive(false);
     }
 
     public void OpenSoundSettings()
     {
         AudioManager.Instance.PlaySE("menu_enter");
 
-        if (settingsMenuPanel != null) settingsMenuPanel.SetActive(false);
-        if (playerCountPanel != null) playerCountPanel.SetActive(false);
-        if (soundSettingsPanel != null) soundSettingsPanel.SetActive(true);
+        if (settingsMenuPanel != null)
+            settingsMenuPanel.SetActive(false);
+
+        if (playerCountPanel != null)
+            playerCountPanel.SetActive(false);
+
+        if (soundSettingsPanel != null)
+            soundSettingsPanel.SetActive(true);
     }
 
     public void BackToSettingsMenu()
     {
         AudioManager.Instance.PlaySE("menu_cancel");
+
         ShowSettingsMenu();
     }
 }
