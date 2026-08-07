@@ -309,8 +309,6 @@ public class GameFlowController : MonoBehaviour
 
         if (settingsButton != null)
             settingsButton.SetActive(true);
-
-        ShowSettingsMenu();
     }
 
     public void Set2Players()
