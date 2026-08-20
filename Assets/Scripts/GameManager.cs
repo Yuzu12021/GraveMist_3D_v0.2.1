@@ -55,10 +55,6 @@ public class GameManager : MonoBehaviour
     public Sprite[] characterLargeSprites;      // CurrentPlayerPanel用
     public string[] characterNames;             // キャラ名（今は未使用でもOK）
 
-    [Header("Evolution Settings")]
-
-    [SerializeField]
-    private bool autoEvolutionByMP = true;
 
     [System.Serializable]
     public class PlayerEvolutionSprites
@@ -119,7 +115,7 @@ public class GameManager : MonoBehaviour
     private readonly List<GameObject> players = new List<GameObject>();
     private readonly List<int> playerPathIndices = new List<int>();
     private readonly List<int> playerStartPathIndices = new List<int>();
-    private readonly List<List<MistType>> playerMists = new List<List<MistType>>();
+    private readonly List<List<MistColor>> playerMists = new List<List<MistColor>>();
 
     private readonly int[] playerEvolutionLevels = new int[4];
 
@@ -176,23 +172,19 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private int mpEvolutionCost = 20;
 
-    // true  = ターン終了時にMP自動進化
-    // false = 自動進化しない（将来Button式などに使える）
-    // MPによるLevel3進化を許可するか
-    [SerializeField]
-    private bool allowFinalEvolutionByMP = true;
 
     public enum GameState
     {
         Idle,
         Shake
     }
-    public enum MistType
+    public enum MistColor
     {
-        Hole = 1,
-        Plus1 = 2,
-        Cake = 3,
-        Uturn = 4
+        Red = 1,
+        Blue = 2,
+        Green = 3,
+        Yellow = 4,
+        Black = 5
     }
     public GameState currentState = GameState.Idle;
 
@@ -218,6 +210,22 @@ public class GameManager : MonoBehaviour
     // key   : outerPath の index
     // value : その穴の見た目オブジェクト
     private Dictionary<int, GameObject> holeVisualsByPathIndex = new Dictionary<int, GameObject>();
+
+    bool IsStoppedOnOtherPlayer()
+    {
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (i == currentPlayerIndex)
+                continue;
+
+            if (playerPathIndices[i] == CurrentPathIndex)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     void Awake()
     {
@@ -409,21 +417,33 @@ public class GameManager : MonoBehaviour
     gaugeUI.gaugeImage.color = Color.white;
 }
 
-    void RefreshMistSlots(MistSlotsUI mistUI, List<MistType> mists)
+    void RefreshMistSlots(
+    MistSlotsUI mistUI,
+    List<MistColor> mists
+)
     {
-        if (mistUI == null || mistUI.slots == null) return;
+        if (mistUI == null || mistUI.slots == null)
+            return;
 
         for (int i = 0; i < mistUI.slots.Length; i++)
         {
-            if (mistUI.slots[i] == null) continue;
+            if (mistUI.slots[i] == null)
+                continue;
 
             if (i < mists.Count)
             {
-                int spriteIndex = (int)mists[i] - 1;
+                int spriteIndex =
+                    (int)mists[i] - 1;
 
-                if (mistSprites != null && spriteIndex >= 0 && spriteIndex < mistSprites.Length)
+                if (
+                    mistSprites != null &&
+                    spriteIndex >= 0 &&
+                    spriteIndex < mistSprites.Length
+                )
                 {
-                    mistUI.slots[i].sprite = mistSprites[spriteIndex];
+                    mistUI.slots[i].sprite =
+                        mistSprites[spriteIndex];
+
                     mistUI.slots[i].enabled = true;
                     mistUI.slots[i].color = Color.white;
                 }
@@ -507,7 +527,7 @@ public class GameManager : MonoBehaviour
             int pathIndex = boardManager.outerPath.IndexOf(grid);
             playerPathIndices.Add(pathIndex);
             playerStartPathIndices.Add(pathIndex);
-            playerMists.Add(new List<MistType>());
+            playerMists.Add(new List<MistColor>());
         }
 
         currentPlayerIndex = 0;
@@ -520,50 +540,58 @@ public class GameManager : MonoBehaviour
         {
             for (int j = 0; j < START_MIST; j++)
             {
-                MistType mist = (MistType)Random.Range(1, 5);
+                // 赤・青・緑・黄のみ
+                // Black(5)は初期配布では出さない
+                MistColor mist =
+                    (MistColor)Random.Range(1, 5);
+
                 playerMists[i].Add(mist);
             }
         }
     }
 
-    void GiveMist(int playerIndex, int amount = 1)
+    void GiveMist(int playerIndex, int amount)
     {
-        if (playerIndex < 0 || playerIndex >= playerMists.Count) return;
-        if (amount <= 0) return;
-
-        int finalAmount = amount;
-
-        // Mist+1 バフが有効なら、この獲得イベントに対して +1
-        if (playerMistPlusBuff[playerIndex])
-        {
-            finalAmount += 1;
-            Debug.Log($"Player {playerIndex + 1} の Mist+1 バフ発動: {amount} → {finalAmount}");
-        }
-
-        int canAdd = MAX_MIST - playerMists[playerIndex].Count;
-        finalAmount = Mathf.Min(finalAmount, canAdd);
-
-        if (finalAmount <= 0)
-        {
-            Debug.Log($"Player {playerIndex + 1} は Mist 上限のため増えませんでした");
+        if (playerIndex < 0 || playerIndex >= playerMists.Count)
             return;
-        }
-        AudioManager.Instance.PlaySE("mist_get");
-        for (int i = 0; i < finalAmount; i++)
+
+        if (amount <= 0)
+            return;
+
+        for (int i = 0; i < amount; i++)
         {
-            MistType mist = (MistType)Random.Range(1, 5);
+            // 所持上限ならMistは増やさずMP+1
+            if (playerMists[playerIndex].Count >= MAX_MIST)
+            {
+                AddMP(playerIndex, 1);
+
+                Debug.Log(
+                    $"Player {playerIndex + 1} はMist上限のため MP +1"
+                );
+
+                continue;
+            }
+
+            // 通常獲得は赤・青・緑・黄のみ
+            MistColor mist =
+                (MistColor)Random.Range(1, 5);
+
             playerMists[playerIndex].Add(mist);
-            Debug.Log($"Player {playerIndex + 1} got mist: {mist}");
+
+            Debug.Log(
+                $"Player {playerIndex + 1} Mist獲得: {mist}"
+            );
         }
 
-        if (mistPanel != null && mistPanel.activeSelf && playerIndex == currentPlayerIndex)
+        RefreshAllPlayerUI();
+
+        if (
+            mistPanel != null &&
+            mistPanel.activeSelf &&
+            playerIndex == currentPlayerIndex
+        )
         {
             RefreshMistPanelUI(playerIndex);
-        }
-
-        if (playerIndex == currentPlayerIndex)
-        {
-            RefreshCurrentPlayerPanel();
         }
     }
 
@@ -582,22 +610,49 @@ public class GameManager : MonoBehaviour
 
     void RefreshMistPanelUI(int playerIndex)
     {
-        if (mistIconHolder == null || mistIconPrefab == null || mistSprites == null) return;
-        if (playerIndex < 0 || playerIndex >= playerMists.Count) return;
+        if (
+            mistIconHolder == null ||
+            mistIconPrefab == null ||
+            mistSprites == null
+        )
+            return;
+
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count
+        )
+            return;
 
         ClearMistIcons();
 
-        List<MistType> mists = playerMists[playerIndex];
+        List<MistColor> mists =
+            playerMists[playerIndex];
 
-        foreach (MistType mist in mists)
+        foreach (MistColor mist in mists)
         {
-            GameObject icon = Instantiate(mistIconPrefab, mistIconHolder);
-            Image img = icon.GetComponent<Image>();
+            GameObject icon =
+                Instantiate(
+                    mistIconPrefab,
+                    mistIconHolder
+                );
 
-            int index = (int)mist - 1;
-            if (index >= 0 && index < mistSprites.Length)
+            Image img =
+                icon.GetComponent<Image>();
+
+            int index =
+                (int)mist - 1;
+
+            if (
+                img != null &&
+                index >= 0 &&
+                index < mistSprites.Length
+            )
             {
-                img.sprite = mistSprites[index];
+                img.sprite =
+                    mistSprites[index];
+
+                img.enabled = true;
+                img.color = Color.white;
             }
         }
     }
@@ -800,7 +855,7 @@ public class GameManager : MonoBehaviour
         if (playerIndex < 0 || playerIndex >= playerMists.Count) return;
         if (slotIndex < 0 || slotIndex >= playerMists[playerIndex].Count) return;
 
-        MistType usedMist = playerMists[playerIndex][slotIndex];
+        MistColor usedMist = playerMists[playerIndex][slotIndex];
 
         Debug.Log($"Player {playerIndex + 1} used Mist: {usedMist}");
 
@@ -815,24 +870,24 @@ public class GameManager : MonoBehaviour
         // =========================
         switch (usedMist)
         {
-            case MistType.Hole:
-                ActivateHole(playerIndex);
+            case MistColor.Red:
+                Debug.Log("Red Mist 使用");
                 break;
 
-            case MistType.Plus1:
-                ActivatePlus1(playerIndex);
+            case MistColor.Blue:
+                Debug.Log("Blue Mist 使用");
                 break;
 
-            case MistType.Cake:
-                ActivateCake(playerIndex);
+            case MistColor.Green:
+                Debug.Log("Green Mist 使用");
                 break;
 
-            case MistType.Uturn:
-                ActivateUturn(playerIndex);
+            case MistColor.Yellow:
+                Debug.Log("Yellow Mist 使用");
                 break;
 
-            default:
-                Debug.LogWarning("未対応のMistです");
+            case MistColor.Black:
+                Debug.Log("Black Mist 使用");
                 break;
         }
 
@@ -845,7 +900,7 @@ public class GameManager : MonoBehaviour
         // MP加算
         AddMP(playerIndex, 1);
     }
-    void ShowUsedMistUI(MistType mist)
+    void ShowUsedMistUI(MistColor mist)
     {
         if (usedMistImage == null) return;
 
@@ -863,7 +918,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    void AddCurrentPlayerUsedMistIcon(MistType mist)
+    void AddCurrentPlayerUsedMistIcon(MistColor mist)
     {
         if (currentPlayerMistHolder == null || usedMistIconPrefab == null) return;
 
@@ -1018,12 +1073,41 @@ public class GameManager : MonoBehaviour
         if (playerIndex < 0 || playerIndex >= playerMP.Length)
             return;
 
-        // MPを加算するだけ
+        if (amount <= 0)
+            return;
+
         playerMP[playerIndex] += amount;
 
         Debug.Log(
-            $"Player {playerIndex + 1} MP: {playerMP[playerIndex]}"
+            $"Player {playerIndex + 1} MP +{amount} " +
+            $"→ {playerMP[playerIndex]}"
         );
+
+        // =========================================
+        // MP20ごとに即進化
+        // =========================================
+        while (playerMP[playerIndex] >= mpEvolutionCost)
+        {
+            // すでにLevel3ならこれ以上進化しない
+            if (GetPlayerEvolutionLevel(playerIndex) >= 3)
+                break;
+
+            // MP消費
+            playerMP[playerIndex] -= mpEvolutionCost;
+
+            Debug.Log(
+                $"[MP Evolution] Player {playerIndex + 1} : " +
+                $"{mpEvolutionCost} MP消費"
+            );
+
+            // 即進化
+            bool won =
+                TryAdvanceEvolution(playerIndex);
+
+            // Level3になったら勝利済みなので終了
+            if (won)
+                return;
+        }
 
         RefreshAllPlayerUI();
     }
@@ -1282,6 +1366,7 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // =========================================================
 
         totalSteps = 0;
+        int backCount = 0;
 
         foreach (GameObject g in spawnedGraves)
         {
@@ -1315,6 +1400,8 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                     if (renderer != null)
                         renderer.material = blueMat;
 
+                    backCount++;
+
                     break;
 
 
@@ -1325,7 +1412,14 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
                     totalSteps += 5;
 
+                    // Mist +1
                     GiveMist(
+                        currentPlayerIndex,
+                        1
+                    );
+
+                    // MP +1
+                    AddMP(
                         currentPlayerIndex,
                         1
                     );
@@ -1340,7 +1434,14 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
                     totalSteps += 10;
 
+                    // Mist +2
                     GiveMist(
+                        currentPlayerIndex,
+                        2
+                    );
+
+                    // MP +2
+                    AddMP(
                         currentPlayerIndex,
                         2
                     );
@@ -1354,14 +1455,32 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
                     totalSteps += 32;
 
+                    // 逆立ちはMistなし
+                    // MP +20
+                    AddMP(
+                        currentPlayerIndex,
+                        20
+                    );
+
                     Debug.Log(
-                        $"[Reverse] Player {currentPlayerIndex + 1} : 32マス"
+                        $"[Reverse] Player {currentPlayerIndex + 1} : " +
+                        $"32マス / MP +20"
                     );
 
                     break;
             }
         }
+        // =========================================================
+        // 全て裏なら特殊ルールで8マス
+        // =========================================================
+        if (backCount == spawnedGraves.Count)
+        {
+            totalSteps = 8;
 
+            Debug.Log(
+                $"[All Back] Player {currentPlayerIndex + 1} : 8マス"
+            );
+        }
 
         // =========================================================
         // Cake
@@ -1505,7 +1624,9 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                     reverseCount++;
                     break;
             }
+
         }
+
 
         int baseMistGain = sideCount + verticalCount * 2;
         int plusBonus = playerMistPlusBuff[currentPlayerIndex]
@@ -1544,67 +1665,145 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
     IEnumerator MovePlayerCoroutine(int steps)
     {
         int dir = isClockwise ? -1 : 1;
-        if (steps < 0) dir *= -1;
+
+        if (steps < 0)
+            dir *= -1;
+
         int count = Mathf.Abs(steps);
 
+        // =========================================
+        // 1マスずつ移動
+        // =========================================
         for (int i = 0; i < count; i++)
         {
             CurrentPathIndex =
                 (CurrentPathIndex + dir + boardManager.outerPath.Count)
                 % boardManager.outerPath.Count;
 
-            Vector2Int grid = boardManager.outerPath[CurrentPathIndex];
+            Vector2Int grid =
+                boardManager.outerPath[CurrentPathIndex];
 
-            Vector3 pos = boardManager.GridToWorld(grid.x, grid.y);
+            Vector3 pos =
+                boardManager.GridToWorld(grid.x, grid.y);
+
             pos.y = 5f;
 
-            yield return MoveToPosition(CurrentPlayer.transform, pos, 0.15f);
-            CheckPlayerTread();
+            yield return MoveToPosition(
+                CurrentPlayer.transform,
+                pos,
+                0.15f
+            );
 
-            AudioManager.Instance.PlaySE("player_step");
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySE(
+                    "player_step"
+                );
+            }
 
             yield return new WaitForSeconds(0.05f);
 
-            if (holeOwnerByPathIndex.TryGetValue(CurrentPathIndex, out int holeOwner))
+
+            // =========================================
+            // このマスで強制停止するか確認
+            // =========================================
+            bool forcedStop = false;
+
+            if (
+                holeOwnerByPathIndex.TryGetValue(
+                    CurrentPathIndex,
+                    out int holeOwner
+                )
+            )
             {
                 // 自分が置いた穴なら無視
                 if (holeOwner != currentPlayerIndex)
                 {
-                    Debug.Log($"Player {currentPlayerIndex + 1} fell into Hole at pathIndex={CurrentPathIndex}");
+                    Debug.Log(
+                        $"Player {currentPlayerIndex + 1} " +
+                        $"fell into Hole at pathIndex={CurrentPathIndex}"
+                    );
 
-                    // 穴を消す（1回発動したら消滅）
-                    holeOwnerByPathIndex.Remove(CurrentPathIndex);
-                    RemoveHoleVisual(CurrentPathIndex);
+                    holeOwnerByPathIndex.Remove(
+                        CurrentPathIndex
+                    );
 
-                    // TODO:
-                    // ここで穴マーカーを消したいなら消す
+                    RemoveHoleVisual(
+                        CurrentPathIndex
+                    );
 
-                    // このマスで強制停止
-                    break;
+                    forcedStop = true;
                 }
             }
+
+
+            // =========================================
+            // このマスが最終マスか
+            // =========================================
+            bool isFinalStep =
+                i == count - 1;
+
+
+            // =========================================
+            // 本当に「通過」する場合だけ
+            // 相手プレイヤー追い越し判定
+            // =========================================
+            if (!forcedStop && !isFinalStep)
+            {
+                CheckPlayerTread();
+            }
+
+
+            // =========================================
+            // 強制停止なら移動終了
+            // =========================================
+            if (forcedStop)
+            {
+                break;
+            }
+
+
+            // =========================================
+            // 角を通過
+            // =========================================
             if (IsCorner(grid))
             {
-                float turnAngle = isClockwise ? 90f : -90f;
+                float turnAngle =
+                    isClockwise ? 90f : -90f;
 
                 CurrentPlayer.transform.rotation =
                     Quaternion.Euler(
                         90f,
-                        RoundTo90(CurrentPlayer.transform.eulerAngles.y + turnAngle),
+                        RoundTo90(
+                            CurrentPlayer.transform.eulerAngles.y
+                            + turnAngle
+                        ),
                         0f
                     );
 
-                GiveMist(currentPlayerIndex);
+                // 角通過 → Mist +1
+                GiveMist(
+                    currentPlayerIndex,
+                    1
+                );
             }
         }
 
+
+        // =========================================
+        // 移動終了後
+        // =========================================
+
+        bool stoppedOnOtherPlayer =
+            IsStoppedOnOtherPlayer();
+
         Vector2Int stopGrid =
-    boardManager.outerPath[CurrentPathIndex];
+            boardManager.outerPath[CurrentPathIndex];
 
         bool isCorner =
             IsCorner(stopGrid);
 
-        // 0マス進化防止
+        // 0マスでは進化させない
         bool movedThisTurn =
             totalSteps > 0;
 
@@ -1612,7 +1811,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // =========================================
         // 四隅進化
         // =========================================
-
         if (movedThisTurn && isCorner)
         {
             bool won =
@@ -1621,25 +1819,69 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 );
 
             // Level3になった場合は
-            // TryAdvanceEvolution内ですでに勝利処理済み
+            // TryAdvanceEvolution内で勝利処理済み
             if (won)
+            {
                 yield break;
+            }
         }
 
 
-        // 通常ならターン終了
+        // =========================================
+        // 相手プレイヤーのマスに停止
+        // =========================================
+        if (stoppedOnOtherPlayer)
+        {
+            Debug.Log(
+                $"Player {currentPlayerIndex + 1} " +
+                $"stopped on another player " +
+                $"→ Attack / Extra Turn"
+            );
+
+            // クラシック：
+            // 攻撃成功 → Mist +1
+            GiveMist(
+                currentPlayerIndex,
+                1
+            );
+
+            // ターン交代せず
+            // 同じプレイヤーでもう一度
+            EnterTurnStart();
+
+            RefreshAllPlayerUI();
+
+            FadeCurrentPlayerPanel(true);
+
+            yield break;
+        }
+
+
+        // =========================================
+        // 通常ターン終了
+        // =========================================
         NextTurn();
     }
     void CheckPlayerTread()
     {
         for (int i = 0; i < players.Count; i++)
         {
-            if (i == currentPlayerIndex) continue;
+            if (i == currentPlayerIndex)
+                continue;
 
             if (playerPathIndices[i] == CurrentPathIndex)
             {
                 AudioManager.Instance.PlaySE("player_tread");
-                break;
+
+                // 相手を抜かしたのでMist +1
+                GiveMist(
+                    currentPlayerIndex,
+                    1
+                );
+
+                Debug.Log(
+                    $"Player {currentPlayerIndex + 1} passed Player {i + 1} → Mist +1"
+                );
             }
         }
     }
@@ -1705,22 +1947,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         ProcessEndOfTurn(
             endingPlayerIndex
         );
-
-
-        // =========================================
-        // ターン終了時 MP進化判定
-        // =========================================
-
-        bool won =
-            ProcessEndTurnMPEvolution(
-                endingPlayerIndex
-            );
-
-        // MP進化でLevel3になった場合、
-        // TryAdvanceEvolution内ですでに勝利処理済み
-        if (won)
-            return;
-
 
         // =========================================
         // 次プレイヤーへ
@@ -1894,41 +2120,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         return false;
     }
 
-    bool ProcessEndTurnMPEvolution(int playerIndex)
-    {
-        if (!autoEvolutionByMP)
-            return false;
-
-        if (playerIndex < 0 || playerIndex >= playerMP.Length)
-            return false;
-
-        int currentLevel =
-            GetPlayerEvolutionLevel(playerIndex);
-
-        // すでにLevel3なら何もしない
-        if (currentLevel >= 3)
-            return false;
-
-        // MPが足りない
-        if (playerMP[playerIndex] < mpEvolutionCost)
-            return false;
-
-        // 進化に必要なMPを消費
-        playerMP[playerIndex] -= mpEvolutionCost;
-
-        Debug.Log(
-            $"[MP Evolution] Player {playerIndex + 1} : " +
-            $"{mpEvolutionCost} MP消費"
-        );
-
-        // 共通進化処理
-        bool won =
-            TryAdvanceEvolution(playerIndex);
-
-        RefreshAllPlayerUI();
-
-        return won;
-    }
     public int GetCurrentPlayerIndex()
     {
         return currentPlayerIndex;

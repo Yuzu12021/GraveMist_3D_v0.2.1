@@ -50,7 +50,7 @@ public class CharacterSwipe : MonoBehaviour
     void Start()
     {
         if (flow == null)
-            flow = FindObjectOfType<GameFlowController>();
+            flow = FindFirstObjectByType<GameFlowController>();
 
         if (!ValidateSetup())
             return;
