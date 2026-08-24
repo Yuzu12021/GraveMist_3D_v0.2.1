@@ -46,80 +46,83 @@ public enum MistEffectType
 
 public class MistEffectManager : MonoBehaviour
 {
+    // =========================================================
+    // References
+    // =========================================================
+
     [SerializeField]
     private GameManager gameManager;
 
     [SerializeField]
     private BoardManager boardManager;
 
+
+    // =========================================================
+    // Hole Trap
+    // =========================================================
+
     [Header("Hole Trap Visual")]
     [SerializeField]
     private GameObject holeMarkerPrefab;
 
-    // Element 0 = 1P用（1.png）
-    // Element 1 = 2P用（2.png）
-    // Element 2 = 3P用（3.png）
-    // Element 3 = 4P用（4.png）
+    // Element 0 = 1P用
+    // Element 1 = 2P用
+    // Element 2 = 3P用
+    // Element 3 = 4P用
     [SerializeField]
     private Sprite[] holeSprites;
 
-    [Header("Bind")]
-    [SerializeField]
-    private Sprite[] bindSprites;
-    // Element 0 = Bind01.png
-    // Element 1 = Bind02.png
-    // ...
-    // Element 9 = Bind10.png
-
-    [SerializeField]
-    private Transform currentPlayerMistHolder;
-
-
-    private int[] playerBindCount = new int[4];
-
     private Dictionary<int, int> holeOwnerByPathIndex =
-    new Dictionary<int, int>();
+        new Dictionary<int, int>();
 
     private Dictionary<int, GameObject> holeVisualsByPathIndex =
         new Dictionary<int, GameObject>();
 
-    public bool TryGetHoleOwner(
-    int pathIndex,
-    out int ownerPlayerIndex
-)
-    {
-        return holeOwnerByPathIndex.TryGetValue(
-            pathIndex,
-            out ownerPlayerIndex
-        );
-    }
 
-    public void RemoveHole(
-    int pathIndex
-)
-    {
-        holeOwnerByPathIndex.Remove(
-            pathIndex
-        );
+    // =========================================================
+    // Status UI
+    // =========================================================
 
-        RemoveHoleVisual(
-            pathIndex
-        );
-    }
+    [Header("Status UI")]
+    [SerializeField]
+    private Transform currentPlayerMistHolder;
 
-    bool IsCorner(Vector2Int grid)
-    {
-        int max =
-            boardManager.gridSize - 1;
+    // Element 0 = 01.png
+    // Element 1 = 02.png
+    // ...
+    // Element 9 = 10.png
+    [SerializeField]
+    private Sprite[] statusCountSprites;
 
-        return
-            (grid.x == 0 || grid.x == max) &&
-            (grid.y == 0 || grid.y == max);
-    }
+
+    // =========================================================
+    // Bind
+    // =========================================================
+
+    [Header("Bind")]
+    [SerializeField]
+    private Sprite bindSprite;
+
+    private int[] playerBindCount =
+        new int[4];
+
+
+    // =========================================================
+    // Protector
+    // =========================================================
+
+    [Header("Protector")]
+    [SerializeField]
+    private Sprite protectorSprite;
+
+    private int[] playerProtectorCount =
+        new int[4];
+
 
     // =========================================================
     // 外部から呼ぶ入口
     // =========================================================
+
     public MistEffectType UseMist(
         GameManager.MistColor color,
         int playerIndex
@@ -147,6 +150,7 @@ public class MistEffectManager : MonoBehaviour
     // =========================================================
     // 色ごとのランダム効果抽選
     // =========================================================
+
     MistEffectType GetRandomEffect(
         GameManager.MistColor color
     )
@@ -158,21 +162,12 @@ public class MistEffectManager : MonoBehaviour
             // =========================
             case GameManager.MistColor.Red:
                 {
-                    return MistEffectType.Bind;
-                }
-
-
-            // =========================
-            // Blue
-            // =========================
-            case GameManager.MistColor.Blue:
-                {
                     MistEffectType[] effects =
                     {
-                    MistEffectType.Protector,
-                    MistEffectType.Analyzer,
-                    MistEffectType.Counter,
-                    MistEffectType.MistPlus
+                    MistEffectType.HoleTrap,
+                    MistEffectType.Shot,
+                    MistEffectType.ColorBall,
+                    MistEffectType.Bind
                 };
 
                     return effects[
@@ -181,6 +176,16 @@ public class MistEffectManager : MonoBehaviour
                             effects.Length
                         )
                     ];
+                }
+
+
+            // =========================
+            // Blue
+            // =========================
+            case GameManager.MistColor.Blue:
+                {
+                    // ★ Protector動作確認用
+                    return MistEffectType.Protector;
                 }
 
 
@@ -260,6 +265,7 @@ public class MistEffectManager : MonoBehaviour
     // =========================================================
     // 効果実行
     // =========================================================
+
     void ExecuteEffect(
         MistEffectType effect,
         int playerIndex
@@ -272,7 +278,6 @@ public class MistEffectManager : MonoBehaviour
             // =====================================================
 
             case MistEffectType.HoleTrap:
-
                 Debug.Log(
                     $"Player {playerIndex + 1} : HoleTrap"
                 );
@@ -285,7 +290,6 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Shot:
-
                 Debug.Log(
                     $"Player {playerIndex + 1} : Shot"
                 );
@@ -310,7 +314,6 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Bind:
-
                 Debug.Log(
                     $"Player {playerIndex + 1} : Bind"
                 );
@@ -331,8 +334,10 @@ public class MistEffectManager : MonoBehaviour
                     $"Player {playerIndex + 1} : Protector"
                 );
 
-                // TODO:
-                // 自分にProtectorを1個付与
+                AddProtector(
+                    playerIndex,
+                    1
+                );
 
                 break;
 
@@ -380,7 +385,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 自分に1ターン移動+2付与
+                // 自分に1ターン移動+2
 
                 break;
 
@@ -391,7 +396,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 前後3マスへの任意ワープ
+                // 前後3マス任意ワープ
 
                 break;
 
@@ -402,7 +407,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 自分に1ターン移動2倍付与
+                // 自分に1ターン移動2倍
 
                 break;
 
@@ -413,8 +418,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 自分または召喚ユニットを
-                // 初期地点へ任意ワープ
+                // 初期地点への任意ワープ
 
                 break;
 
@@ -440,7 +444,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 全ユニットに1ターン移動半減
+                // 全ユニットに移動半減
 
                 break;
 
@@ -462,7 +466,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 全員ランダムに前後3マスワープ
+                // 全員ランダムワープ
 
                 break;
 
@@ -488,7 +492,7 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 自分を1段階進化
+                // 1進化
 
                 break;
 
@@ -499,54 +503,85 @@ public class MistEffectManager : MonoBehaviour
                 );
 
                 // TODO:
-                // 全ユニットのステータスを
-                // ランダム化
+                // 全ユニットステータス混乱
 
                 break;
         }
     }
 
-    void ActivateHole(int playerIndex)
-    {
-        // 外周マスのうち、角を除いたマスだけ候補にする
-        List<int> candidates = new List<int>();
 
-        for (int i = 0; i < boardManager.outerPath.Count; i++)
+    // =========================================================
+    // Red : HoleTrap
+    // =========================================================
+
+    void ActivateHole(
+        int playerIndex
+    )
+    {
+        if (
+            boardManager == null ||
+            boardManager.outerPath == null
+        )
         {
-            Vector2Int grid = boardManager.outerPath[i];
+            return;
+        }
+
+        List<int> candidates =
+            new List<int>();
+
+        for (
+            int i = 0;
+            i < boardManager.outerPath.Count;
+            i++
+        )
+        {
+            Vector2Int grid =
+                boardManager.outerPath[i];
 
             // 角は除外
             if (IsCorner(grid))
                 continue;
 
-            // すでに穴があるマスは除外
-            if (holeOwnerByPathIndex.ContainsKey(i))
+            // すでにHoleがあるマスは除外
+            if (
+                holeOwnerByPathIndex.ContainsKey(i)
+            )
+            {
                 continue;
+            }
 
             candidates.Add(i);
         }
 
         if (candidates.Count == 0)
         {
-            Debug.Log("Holeを置けるマスがありません");
+            Debug.Log(
+                "Holeを置けるマスがありません"
+            );
+
             return;
         }
 
-        int randomIndex =
-            Random.Range(0, candidates.Count);
-
         int holePathIndex =
-            candidates[randomIndex];
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
 
-        // ロジック上のHoleを登録
-        holeOwnerByPathIndex[holePathIndex] =
-            playerIndex;
+        holeOwnerByPathIndex[
+            holePathIndex
+        ] = playerIndex;
 
         Vector2Int holeGrid =
-            boardManager.outerPath[holePathIndex];
+            boardManager.outerPath[
+                holePathIndex
+            ];
 
         Debug.Log(
-            $"Player {playerIndex + 1} placed Hole at {holeGrid} " +
+            $"Player {playerIndex + 1} placed Hole at " +
+            $"{holeGrid} " +
             $"(pathIndex={holePathIndex})"
         );
 
@@ -556,254 +591,44 @@ public class MistEffectManager : MonoBehaviour
         );
     }
 
-    // =========================================================
-    // Red : Shot
-    // 敵プレイヤーのMistをランダムで1つ破壊
-    // =========================================================
-    void ActivateShot(int attackerPlayerIndex)
+
+    public bool TryGetHoleOwner(
+        int pathIndex,
+        out int ownerPlayerIndex
+    )
     {
-        if (gameManager == null)
-        {
-            Debug.LogWarning(
-                "[Shot] GameManager が設定されていません"
-            );
-            return;
-        }
-
-        // =========================================
-        // Mistを持っている敵プレイヤーを探す
-        // =========================================
-        List<int> candidates =
-            new List<int>();
-
-        for (int i = 0; i < 4; i++)
-        {
-            // 自分自身は対象外
-            if (i == attackerPlayerIndex)
-                continue;
-
-            // Mistを1個以上持っているプレイヤーだけ対象
-            if (gameManager.GetMistCount(i) <= 0)
-                continue;
-
-            candidates.Add(i);
-        }
-
-        // =========================================
-        // 対象が誰もいない
-        // =========================================
-        if (candidates.Count == 0)
-        {
-            Debug.Log(
-                $"[Shot] Player {attackerPlayerIndex + 1} / " +
-                "破壊できる敵Mistがありません"
-            );
-
-            return;
-        }
-
-        // =========================================
-        // 敵プレイヤーをランダムで1人選択
-        // =========================================
-        int targetPlayerIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        // =========================================
-        // そのプレイヤーのMistからランダムで1個選択
-        // =========================================
-        int mistCount =
-            gameManager.GetMistCount(
-                targetPlayerIndex
-            );
-
-        int targetMistIndex =
-            Random.Range(
-                0,
-                mistCount
-            );
-
-        GameManager.MistColor destroyedMist =
-            gameManager.GetMist(
-                targetPlayerIndex,
-                targetMistIndex
-            );
-
-        // =========================================
-        // Mist破壊
-        // =========================================
-        gameManager.RemoveMist(
-            targetPlayerIndex,
-            targetMistIndex
-        );
-
-        Debug.Log(
-            $"[Shot] Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} / " +
-            $"{destroyedMist} Mistを破壊"
+        return holeOwnerByPathIndex.TryGetValue(
+            pathIndex,
+            out ownerPlayerIndex
         );
     }
 
-    // =========================================================
-    // Red : ColorBall
-    // 敵プレイヤー1人の所持Mistを
-    // 同じランダム1色に染める
-    // =========================================================
-    void ActivateColorBall(int attackerPlayerIndex)
+
+    public void RemoveHole(
+        int pathIndex
+    )
     {
-        if (gameManager == null)
-        {
-            Debug.LogWarning(
-                "[ColorBall] GameManager が設定されていません"
-            );
-            return;
-        }
+        holeOwnerByPathIndex.Remove(
+            pathIndex
+        );
 
-        // =========================================
-        // Mistを持っている敵を候補にする
-        // =========================================
-        List<int> candidates =
-            new List<int>();
-
-        for (int i = 0; i < 4; i++)
-        {
-            if (i == attackerPlayerIndex)
-                continue;
-
-            if (gameManager.GetMistCount(i) <= 0)
-                continue;
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-        {
-            Debug.Log(
-                $"[ColorBall] Player {attackerPlayerIndex + 1} / " +
-                "対象にできる敵がいません"
-            );
-
-            return;
-        }
-
-        // =========================================
-        // 対象プレイヤーをランダム選択
-        // =========================================
-        int targetPlayerIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        // =========================================
-        // 新しい色をランダム選択
-        // Blackは通常色変化では除外
-        // =========================================
-        GameManager.MistColor newColor =
-            (GameManager.MistColor)Random.Range(
-                1,
-                5
-            );
-
-        int mistCount =
-            gameManager.GetMistCount(
-                targetPlayerIndex
-            );
-
-        // =========================================
-        // 全Mistを同じ色に変更
-        // =========================================
-        for (int i = 0; i < mistCount; i++)
-        {
-            gameManager.SetMistColor(
-                targetPlayerIndex,
-                i,
-                newColor
-            );
-        }
-
-        Debug.Log(
-            $"[ColorBall] Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} のMistを全て " +
-            $"{newColor} に変更"
+        RemoveHoleVisual(
+            pathIndex
         );
     }
 
-    // =========================================================
-    // Red : Bind
-    // 敵プレイヤー1人にBindを2個付与
-    // =========================================================
-    // =========================================================
-    // Red : Bind
-    // 敵プレイヤー1人にBindを2個付与
-    // =========================================================
-    void ActivateBind(int attackerPlayerIndex)
-    {
-        if (gameManager == null)
-        {
-            Debug.LogWarning(
-                "[Bind] GameManager が設定されていません"
-            );
-            return;
-        }
 
-        List<int> candidates =
-            new List<int>();
-
-        int playerCount =
-            gameManager.GetPlayerCount();
-
-        for (int i = 0; i < playerCount; i++)
-        {
-            // 自分は対象外
-            if (i == attackerPlayerIndex)
-                continue;
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-        {
-            Debug.Log(
-                "[Bind] 対象プレイヤーがいません"
-            );
-            return;
-        }
-
-        int targetPlayerIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        AddBind(
-            targetPlayerIndex,
-            2
-        );
-
-        Debug.Log(
-            $"[Bind] Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} にBind +2"
-        );
-    }
     void CreateHoleVisual(
-    int holePathIndex,
-    int playerIndex
-)
+        int holePathIndex,
+        int playerIndex
+    )
     {
         if (holeMarkerPrefab == null)
         {
             Debug.LogWarning(
                 "HoleTrap: Hole Marker Prefab が設定されていません"
             );
+
             return;
         }
 
@@ -813,8 +638,9 @@ public class MistEffectManager : MonoBehaviour
         )
         {
             Debug.LogWarning(
-                "HoleTrap: Hole Sprites に1P～4P用の4枚を設定してください"
+                "HoleTrap: Hole Spritesを4枚設定してください"
             );
+
             return;
         }
 
@@ -823,22 +649,20 @@ public class MistEffectManager : MonoBehaviour
             playerIndex >= holeSprites.Length
         )
         {
-            Debug.LogWarning(
-                $"HoleTrap: playerIndex が範囲外です: {playerIndex}"
-            );
             return;
         }
 
-        if (holeSprites[playerIndex] == null)
+        if (
+            holeSprites[playerIndex] == null
+        )
         {
-            Debug.LogWarning(
-                $"HoleTrap: {playerIndex + 1}P用Spriteが設定されていません"
-            );
             return;
         }
 
         Vector2Int grid =
-            boardManager.outerPath[holePathIndex];
+            boardManager.outerPath[
+                holePathIndex
+            ];
 
         Vector3 pos =
             boardManager.GridToWorld(
@@ -846,8 +670,8 @@ public class MistEffectManager : MonoBehaviour
                 grid.y
             );
 
-        // 盤面より少し上
-        pos.y = 5.05f;
+        pos.y =
+            5.05f;
 
         GameObject marker =
             Instantiate(
@@ -865,28 +689,23 @@ public class MistEffectManager : MonoBehaviour
 
         if (sr == null)
         {
-            Debug.LogWarning(
-                "HoleTrap: Hole Marker Prefab に SpriteRenderer がありません"
+            Destroy(
+                marker
             );
 
-            Destroy(marker);
+            Debug.LogWarning(
+                "HoleTrap: PrefabにSpriteRendererがありません"
+            );
+
             return;
         }
 
-        // =========================================
-        // 設置プレイヤーによって見た目変更
-        // 0=1P, 1=2P, 2=3P, 3=4P
-        // =========================================
         sr.sprite =
             holeSprites[playerIndex];
 
-        holeVisualsByPathIndex[holePathIndex] =
-            marker;
-
-        Debug.Log(
-            $"[HoleTrap Visual] " +
-            $"{playerIndex + 1}P用アイコンを表示"
-        );
+        holeVisualsByPathIndex[
+            holePathIndex
+        ] = marker;
     }
 
 
@@ -903,7 +722,9 @@ public class MistEffectManager : MonoBehaviour
         {
             if (marker != null)
             {
-                Destroy(marker);
+                Destroy(
+                    marker
+                );
             }
 
             holeVisualsByPathIndex.Remove(
@@ -912,9 +733,287 @@ public class MistEffectManager : MonoBehaviour
         }
     }
 
+
+    bool IsCorner(
+        Vector2Int grid
+    )
+    {
+        int max =
+            boardManager.gridSize - 1;
+
+        return
+            (grid.x == 0 || grid.x == max) &&
+            (grid.y == 0 || grid.y == max);
+    }
+
+
     // =========================================================
-    // Bind : 付与
+    // Red : Shot
     // =========================================================
+
+    void ActivateShot(
+        int attackerPlayerIndex
+    )
+    {
+        if (gameManager == null)
+            return;
+
+        List<int> candidates =
+            new List<int>();
+
+        int playerCount =
+            gameManager.GetPlayerCount();
+
+        for (
+            int i = 0;
+            i < playerCount;
+            i++
+        )
+        {
+            if (
+                i == attackerPlayerIndex
+            )
+            {
+                continue;
+            }
+
+            if (
+                gameManager.GetMistCount(i) <= 0
+            )
+            {
+                continue;
+            }
+
+            candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log(
+                "[Shot] 破壊できる敵Mistがありません"
+            );
+
+            return;
+        }
+
+        int targetPlayerIndex =
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
+
+        if (
+            TryBlockWithProtector(
+                targetPlayerIndex,
+                "Shot"
+            )
+        )
+        {
+            return;
+        }
+
+        int mistCount =
+            gameManager.GetMistCount(
+                targetPlayerIndex
+            );
+
+        int targetMistIndex =
+            Random.Range(
+                0,
+                mistCount
+            );
+
+        GameManager.MistColor destroyedMist =
+            gameManager.GetMist(
+                targetPlayerIndex,
+                targetMistIndex
+            );
+
+        gameManager.RemoveMist(
+            targetPlayerIndex,
+            targetMistIndex
+        );
+
+        Debug.Log(
+            $"[Shot] Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} / " +
+            $"{destroyedMist} Mistを破壊"
+        );
+    }
+
+
+    // =========================================================
+    // Red : ColorBall
+    // =========================================================
+
+    void ActivateColorBall(
+        int attackerPlayerIndex
+    )
+    {
+        if (gameManager == null)
+            return;
+
+        List<int> candidates =
+            new List<int>();
+
+        int playerCount =
+            gameManager.GetPlayerCount();
+
+        for (
+            int i = 0;
+            i < playerCount;
+            i++
+        )
+        {
+            if (
+                i == attackerPlayerIndex
+            )
+            {
+                continue;
+            }
+
+            if (
+                gameManager.GetMistCount(i) <= 0
+            )
+            {
+                continue;
+            }
+
+            candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log(
+                "[ColorBall] 対象にできる敵がいません"
+            );
+
+            return;
+        }
+
+        int targetPlayerIndex =
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
+
+        if (
+            TryBlockWithProtector(
+                targetPlayerIndex,
+                "ColorBall"
+            )
+        )
+        {
+            return;
+        }
+
+        GameManager.MistColor newColor =
+            (GameManager.MistColor)
+            Random.Range(
+                1,
+                5
+            );
+
+        int mistCount =
+            gameManager.GetMistCount(
+                targetPlayerIndex
+            );
+
+        for (
+            int i = 0;
+            i < mistCount;
+            i++
+        )
+        {
+            gameManager.SetMistColor(
+                targetPlayerIndex,
+                i,
+                newColor
+            );
+        }
+
+        Debug.Log(
+            $"[ColorBall] Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} のMistを全て " +
+            $"{newColor} に変更"
+        );
+    }
+
+
+    // =========================================================
+    // Red : Bind
+    // =========================================================
+
+    void ActivateBind(
+        int attackerPlayerIndex
+    )
+    {
+        if (gameManager == null)
+            return;
+
+        List<int> candidates =
+            new List<int>();
+
+        int playerCount =
+            gameManager.GetPlayerCount();
+
+        for (
+            int i = 0;
+            i < playerCount;
+            i++
+        )
+        {
+            if (
+                i == attackerPlayerIndex
+            )
+            {
+                continue;
+            }
+
+            candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+            return;
+
+        int targetPlayerIndex =
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
+
+        if (
+            TryBlockWithProtector(
+                targetPlayerIndex,
+                "Bind"
+            )
+        )
+        {
+            return;
+        }
+
+        AddBind(
+            targetPlayerIndex,
+            2
+        );
+
+        Debug.Log(
+            $"[Bind] Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} にBind +2"
+        );
+    }
+
+
+    // =========================================================
+    // Bind
+    // =========================================================
+
     public void AddBind(
         int playerIndex,
         int amount
@@ -931,7 +1030,8 @@ public class MistEffectManager : MonoBehaviour
         if (amount <= 0)
             return;
 
-        playerBindCount[playerIndex] += amount;
+        playerBindCount[playerIndex] +=
+            amount;
 
         Debug.Log(
             $"[Bind] Player {playerIndex + 1} " +
@@ -942,9 +1042,6 @@ public class MistEffectManager : MonoBehaviour
     }
 
 
-    // =========================================================
-    // Bind : 移動時に消費
-    // =========================================================
     public int ApplyBindToMovement(
         int playerIndex,
         int moveAmount
@@ -961,12 +1058,9 @@ public class MistEffectManager : MonoBehaviour
         if (moveAmount <= 0)
             return moveAmount;
 
-        int bindCount =
-            playerBindCount[playerIndex];
-
         int consumed =
             Mathf.Min(
-                bindCount,
+                playerBindCount[playerIndex],
                 moveAmount
             );
 
@@ -989,30 +1083,10 @@ public class MistEffectManager : MonoBehaviour
     }
 
 
-    // =========================================================
-    // Bind : CurrentPlayer_mist 表示更新
-    // =========================================================
     public void RefreshBindUI()
     {
-        if (
-            gameManager == null ||
-            currentPlayerMistHolder == null
-        )
-        {
+        if (gameManager == null)
             return;
-        }
-
-        Transform oldBind =
-            currentPlayerMistHolder.Find(
-                "BindStatus"
-            );
-
-        if (oldBind != null)
-        {
-            Destroy(
-                oldBind.gameObject
-            );
-        }
 
         int playerIndex =
             gameManager.GetCurrentPlayerIndex();
@@ -1025,23 +1099,158 @@ public class MistEffectManager : MonoBehaviour
             return;
         }
 
-        int bindCount =
-            playerBindCount[playerIndex];
+        RefreshStatusIcon(
+            "BindStatus",
+            bindSprite,
+            playerBindCount[playerIndex]
+        );
+    }
 
-        // 0個なら表示なし
-        if (bindCount <= 0)
-            return;
 
+    // =========================================================
+    // Blue : Protector
+    // =========================================================
+
+    public void AddProtector(
+        int playerIndex,
+        int amount
+    )
+    {
         if (
-            bindSprites == null ||
-            bindSprites.Length == 0
+            playerIndex < 0 ||
+            playerIndex >= playerProtectorCount.Length
         )
         {
-            Debug.LogWarning(
-                "[Bind UI] Bind Sprites が設定されていません"
-            );
             return;
         }
+
+        if (amount <= 0)
+            return;
+
+        playerProtectorCount[playerIndex] +=
+            amount;
+
+        Debug.Log(
+            $"[Protector] Player {playerIndex + 1} " +
+            $"+{amount} → 合計 {playerProtectorCount[playerIndex]}"
+        );
+
+        RefreshProtectorUI();
+    }
+
+
+    public int GetProtectorCount(
+        int playerIndex
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerProtectorCount.Length
+        )
+        {
+            return 0;
+        }
+
+        return playerProtectorCount[
+            playerIndex
+        ];
+    }
+
+
+    public void RefreshProtectorUI()
+    {
+        if (gameManager == null)
+            return;
+
+        int playerIndex =
+            gameManager.GetCurrentPlayerIndex();
+
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerProtectorCount.Length
+        )
+        {
+            return;
+        }
+
+        RefreshStatusIcon(
+            "ProtectorStatus",
+            protectorSprite,
+            playerProtectorCount[playerIndex]
+        );
+    }
+
+
+    bool TryBlockWithProtector(
+        int targetPlayerIndex,
+        string effectName
+    )
+    {
+        if (
+            targetPlayerIndex < 0 ||
+            targetPlayerIndex >= playerProtectorCount.Length
+        )
+        {
+            return false;
+        }
+
+        if (
+            playerProtectorCount[
+                targetPlayerIndex
+            ] <= 0
+        )
+        {
+            return false;
+        }
+
+        playerProtectorCount[
+            targetPlayerIndex
+        ]--;
+
+        Debug.Log(
+            $"[Protector] Player {targetPlayerIndex + 1} が " +
+            $"{effectName} を無効化 / " +
+            $"残り {playerProtectorCount[targetPlayerIndex]}"
+        );
+
+        RefreshProtectorUI();
+
+        return true;
+    }
+
+
+    // =========================================================
+    // Status UI 共通表示
+    // =========================================================
+
+    void RefreshStatusIcon(
+        string statusName,
+        Sprite mainSprite,
+        int count
+    )
+    {
+        if (
+            gameManager == null ||
+            currentPlayerMistHolder == null
+        )
+        {
+            return;
+        }
+
+        Transform oldStatus =
+            currentPlayerMistHolder.Find(
+                statusName
+            );
+
+        if (oldStatus != null)
+        {
+            Destroy(
+                oldStatus.gameObject
+            );
+        }
+
+        if (count <= 0)
+            return;
 
         GameObject iconPrefab =
             gameManager.GetStatusIconPrefab();
@@ -1049,23 +1258,44 @@ public class MistEffectManager : MonoBehaviour
         if (iconPrefab == null)
         {
             Debug.LogWarning(
-                "[Bind UI] Icon Prefab が設定されていません"
+                "[Status UI] Icon Prefab が設定されていません"
             );
+
             return;
         }
 
-        int spriteIndex =
-            Mathf.Clamp(
-                bindCount - 1,
-                0,
-                bindSprites.Length - 1
+        if (mainSprite == null)
+        {
+            Debug.LogWarning(
+                $"[Status UI] {statusName} のSpriteがありません"
             );
 
-        Sprite sprite =
-            bindSprites[spriteIndex];
-
-        if (sprite == null)
             return;
+        }
+
+        if (
+            statusCountSprites == null ||
+            statusCountSprites.Length == 0
+        )
+        {
+            Debug.LogWarning(
+                "[Status UI] 個数Spriteが設定されていません"
+            );
+
+            return;
+        }
+
+        int countSpriteIndex =
+            Mathf.Clamp(
+                count - 1,
+                0,
+                statusCountSprites.Length - 1
+            );
+
+        Sprite countSprite =
+            statusCountSprites[
+                countSpriteIndex
+            ];
 
         GameObject icon =
             Instantiate(
@@ -1074,20 +1304,49 @@ public class MistEffectManager : MonoBehaviour
             );
 
         icon.name =
-            "BindStatus";
+            statusName;
 
-        Image image =
+        Image mainImage =
             icon.GetComponent<Image>();
 
-        if (image != null)
+        if (mainImage != null)
         {
-            image.sprite =
-                sprite;
+            mainImage.sprite =
+                mainSprite;
 
-            image.enabled =
+            mainImage.enabled =
                 true;
 
-            image.color =
+            mainImage.color =
+                Color.white;
+        }
+
+        Transform countTransform =
+            icon.transform.Find(
+                "Count"
+            );
+
+        if (countTransform == null)
+        {
+            Debug.LogWarning(
+                $"[Status UI] {statusName} のPrefab内にCountがありません"
+            );
+
+            return;
+        }
+
+        Image countImage =
+            countTransform.GetComponent<Image>();
+
+        if (countImage != null)
+        {
+            countImage.sprite =
+                countSprite;
+
+            countImage.enabled =
+                true;
+
+            countImage.color =
                 Color.white;
         }
     }
