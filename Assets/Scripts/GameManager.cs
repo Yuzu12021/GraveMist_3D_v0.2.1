@@ -167,6 +167,10 @@ public class GameManager : MonoBehaviour
     public Transform currentPlayerMistHolder; // CurrentPlayer_mist
     public GameObject usedMistIconPrefab;     // ImageだけのPrefab
 
+    [Header("Mist Effect")]
+    [SerializeField]
+    private MistEffectManager mistEffectManager;
+
     [Header("Evolution Settings")]
 
     [SerializeField]
@@ -195,21 +199,7 @@ public class GameManager : MonoBehaviour
         get => playerPathIndices[currentPlayerIndex];
         set => playerPathIndices[currentPlayerIndex] = value;
     }
-    // =============================
-    // Hole（落とし穴）管理
-    // =============================
 
-    // key   : outerPath の index（どの外周マスか）
-    // value : その穴を設置したプレイヤー番号
-    private Dictionary<int, int> holeOwnerByPathIndex = new Dictionary<int, int>();
-
-    [Header("Hole Visual")]
-    public GameObject holeMarkerPrefab;   // 穴の見た目用プレハブ
-    public Sprite[] holeSprites;          // Hole1.png ～ Hole4.png
-
-    // key   : outerPath の index
-    // value : その穴の見た目オブジェクト
-    private Dictionary<int, GameObject> holeVisualsByPathIndex = new Dictionary<int, GameObject>();
 
     bool IsStoppedOnOtherPlayer()
     {
@@ -860,37 +850,29 @@ public class GameManager : MonoBehaviour
         Debug.Log($"Player {playerIndex + 1} used Mist: {usedMist}");
 
         ShowUsedMistUI(usedMist);
-        AddCurrentPlayerUsedMistIcon(usedMist);
 
         AudioManager.Instance.PlaySE("mist_break");
         AudioManager.Instance.PlaySE("mist_power");
 
-        // =========================
-        // Mistの種類ごとに効果発動
-        // =========================
-        switch (usedMist)
+        if (mistEffectManager != null)
         {
-            case MistColor.Red:
-                Debug.Log("Red Mist 使用");
-                break;
+            MistEffectType selectedEffect =
+                mistEffectManager.UseMist(
+                    usedMist,
+                    playerIndex
+                );
 
-            case MistColor.Blue:
-                Debug.Log("Blue Mist 使用");
-                break;
-
-            case MistColor.Green:
-                Debug.Log("Green Mist 使用");
-                break;
-
-            case MistColor.Yellow:
-                Debug.Log("Yellow Mist 使用");
-                break;
-
-            case MistColor.Black:
-                Debug.Log("Black Mist 使用");
-                break;
+            Debug.Log(
+                $"[Mist] Player {playerIndex + 1} / " +
+                $"{usedMist} → {selectedEffect}"
+            );
         }
-
+        else
+        {
+            Debug.LogWarning(
+                "MistEffectManager が設定されていません"
+            );
+        }
         // Mist削除
         playerMists[playerIndex].RemoveAt(slotIndex);
 
@@ -942,83 +924,7 @@ public class GameManager : MonoBehaviour
             img.color = Color.white;
         }
     }
-    void ActivateHole(int playerIndex)
-    {
-        // 外周マスのうち、角を除いたマスだけ候補にする
-        List<int> candidates = new List<int>();
-
-        for (int i = 0; i < boardManager.outerPath.Count; i++)
-        {
-            Vector2Int grid = boardManager.outerPath[i];
-
-            // 角は除外
-            if (IsCorner(grid)) continue;
-
-            // すでに穴があるマスは除外
-            if (holeOwnerByPathIndex.ContainsKey(i)) continue;
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-        {
-            Debug.Log("Holeを置けるマスがありません");
-            return;
-        }
-
-        int randomIndex = Random.Range(0, candidates.Count);
-        int holePathIndex = candidates[randomIndex];
-
-        // ロジック上の穴を登録
-        holeOwnerByPathIndex[holePathIndex] = playerIndex;
-
-        Vector2Int holeGrid = boardManager.outerPath[holePathIndex];
-        Debug.Log($"Player {playerIndex + 1} placed Hole at {holeGrid} (pathIndex={holePathIndex})");
-
-        // =========================
-        // 見た目を生成
-        // =========================
-        CreateHoleVisual(holePathIndex, playerIndex);
-    }
-    void RemoveHoleVisual(int holePathIndex)
-    {
-        if (holeVisualsByPathIndex.TryGetValue(holePathIndex, out GameObject marker))
-        {
-            if (marker != null)
-            {
-                Destroy(marker);
-            }
-
-            holeVisualsByPathIndex.Remove(holePathIndex);
-        }
-    }
-    void CreateHoleVisual(int holePathIndex, int playerIndex)
-    {
-        if (holeMarkerPrefab == null) return;
-        if (holeSprites == null || holeSprites.Length == 0) return;
-
-        Vector2Int grid = boardManager.outerPath[holePathIndex];
-
-        // Board のマス座標 → ワールド座標
-        Vector3 pos = boardManager.GridToWorld(grid.x, grid.y);
-
-        // 盤面より少し上に置く
-        pos.y = 5.05f;
-
-        GameObject marker = Instantiate(holeMarkerPrefab, pos, Quaternion.Euler(90f, 0f, 0f));
-
-        SpriteRenderer sr = marker.GetComponent<SpriteRenderer>();
-        if (sr != null)
-        {
-            // playerIndex は 0始まりなのでそのまま対応
-            if (playerIndex >= 0 && playerIndex < holeSprites.Length)
-            {
-                sr.sprite = holeSprites[playerIndex];
-            }
-        }
-
-        holeVisualsByPathIndex[holePathIndex] = marker;
-    }
+    
 
     void ActivatePlus1(int playerIndex)
     {
@@ -1710,11 +1616,12 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
             bool forcedStop = false;
 
             if (
-                holeOwnerByPathIndex.TryGetValue(
-                    CurrentPathIndex,
-                    out int holeOwner
+                mistEffectManager != null &&
+                mistEffectManager.TryGetHoleOwner(
+                CurrentPathIndex,
+                out int holeOwner
                 )
-            )
+                )
             {
                 // 自分が置いた穴なら無視
                 if (holeOwner != currentPlayerIndex)
@@ -1724,11 +1631,7 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                         $"fell into Hole at pathIndex={CurrentPathIndex}"
                     );
 
-                    holeOwnerByPathIndex.Remove(
-                        CurrentPathIndex
-                    );
-
-                    RemoveHoleVisual(
+                    mistEffectManager.RemoveHole(
                         CurrentPathIndex
                     );
 
