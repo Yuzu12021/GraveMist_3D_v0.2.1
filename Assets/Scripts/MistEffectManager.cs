@@ -143,7 +143,7 @@ public class MistEffectManager : MonoBehaviour
             // =========================
             case GameManager.MistColor.Red:
                 {
-                    return MistEffectType.Shot;
+                    return MistEffectType.ColorBall;
                 }
 
 
@@ -287,9 +287,9 @@ public class MistEffectManager : MonoBehaviour
                     $"Player {playerIndex + 1} : ColorBall"
                 );
 
-                // TODO:
-                // 敵プレイヤーのMistを
-                // ランダム1色に変更
+                ActivateColorBall(
+                    playerIndex
+                );
 
                 break;
 
@@ -628,6 +628,93 @@ public class MistEffectManager : MonoBehaviour
             $"[Shot] Player {attackerPlayerIndex + 1} → " +
             $"Player {targetPlayerIndex + 1} / " +
             $"{destroyedMist} Mistを破壊"
+        );
+    }
+
+    // =========================================================
+    // Red : ColorBall
+    // 敵プレイヤー1人の所持Mistを
+    // 同じランダム1色に染める
+    // =========================================================
+    void ActivateColorBall(int attackerPlayerIndex)
+    {
+        if (gameManager == null)
+        {
+            Debug.LogWarning(
+                "[ColorBall] GameManager が設定されていません"
+            );
+            return;
+        }
+
+        // =========================================
+        // Mistを持っている敵を候補にする
+        // =========================================
+        List<int> candidates =
+            new List<int>();
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (i == attackerPlayerIndex)
+                continue;
+
+            if (gameManager.GetMistCount(i) <= 0)
+                continue;
+
+            candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log(
+                $"[ColorBall] Player {attackerPlayerIndex + 1} / " +
+                "対象にできる敵がいません"
+            );
+
+            return;
+        }
+
+        // =========================================
+        // 対象プレイヤーをランダム選択
+        // =========================================
+        int targetPlayerIndex =
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
+
+        // =========================================
+        // 新しい色をランダム選択
+        // Blackは通常色変化では除外
+        // =========================================
+        GameManager.MistColor newColor =
+            (GameManager.MistColor)Random.Range(
+                1,
+                5
+            );
+
+        int mistCount =
+            gameManager.GetMistCount(
+                targetPlayerIndex
+            );
+
+        // =========================================
+        // 全Mistを同じ色に変更
+        // =========================================
+        for (int i = 0; i < mistCount; i++)
+        {
+            gameManager.SetMistColor(
+                targetPlayerIndex,
+                i,
+                newColor
+            );
+        }
+
+        Debug.Log(
+            $"[ColorBall] Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} のMistを全て " +
+            $"{newColor} に変更"
         );
     }
     void CreateHoleVisual(

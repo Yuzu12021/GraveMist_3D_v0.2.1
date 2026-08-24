@@ -651,6 +651,34 @@ public class GameManager : MonoBehaviour
 
         RefreshAllPlayerUI();
     }
+
+    public void SetMistColor(
+    int playerIndex,
+    int mistIndex,
+    MistColor newColor
+)
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count
+        )
+        {
+            return;
+        }
+
+        if (
+            mistIndex < 0 ||
+            mistIndex >= playerMists[playerIndex].Count
+        )
+        {
+            return;
+        }
+
+        playerMists[playerIndex][mistIndex] =
+            newColor;
+
+        RefreshAllPlayerUI();
+    }
     // =========================================================
     // Mist Panel
     // =========================================================
