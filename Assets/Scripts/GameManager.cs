@@ -160,6 +160,7 @@ public class GameManager : MonoBehaviour
     private bool[] playerCakeBuff = new bool[4];
     private const int MAX_MP = 20;
 
+
     [Header("Used Mist UI")]
     public Image usedMistImage;              // Used_mist
     public Sprite[] usedMistEffectSprites;   // 0=Hole, 1=Plus1, 2=Cake, 3=Uturn
@@ -176,6 +177,15 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private int mpEvolutionCost = 20;
 
+    public GameObject GetStatusIconPrefab()
+    {
+        return usedMistIconPrefab;
+    }
+
+    public int GetPlayerCount()
+    {
+        return players.Count;
+    }
 
     public enum GameState
     {
@@ -273,6 +283,7 @@ public class GameManager : MonoBehaviour
             playerMP[i] = 0;
             playerMistPlusBuff[i] = false;
             playerCakeBuff[i] = false;
+
         }
     }
 
@@ -679,6 +690,7 @@ public class GameManager : MonoBehaviour
 
         RefreshAllPlayerUI();
     }
+
     // =========================================================
     // Mist Panel
     // =========================================================
@@ -1503,7 +1515,14 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // ログ
         LogTossResult();
 
-
+        if (mistEffectManager != null)
+        {
+            totalSteps =
+                mistEffectManager.ApplyBindToMovement(
+                    currentPlayerIndex,
+                    totalSteps
+                );
+        }
         // =========================================================
         // プレイヤー移動
         // =========================================================
@@ -1848,6 +1867,11 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
             RefreshAllPlayerUI();
 
+            if (mistEffectManager != null)
+            {
+                mistEffectManager.RefreshBindUI();
+            }
+
             FadeCurrentPlayerPanel(true);
 
             yield break;
@@ -1956,6 +1980,11 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         EnterTurnStart();
 
         RefreshAllPlayerUI();
+
+        if (mistEffectManager != null)
+        {
+            mistEffectManager.RefreshBindUI();
+        }
 
         FadeCurrentPlayerPanel(true);
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 
 public enum MistEffectType
@@ -61,6 +62,20 @@ public class MistEffectManager : MonoBehaviour
     // Element 3 = 4P用（4.png）
     [SerializeField]
     private Sprite[] holeSprites;
+
+    [Header("Bind")]
+    [SerializeField]
+    private Sprite[] bindSprites;
+    // Element 0 = Bind01.png
+    // Element 1 = Bind02.png
+    // ...
+    // Element 9 = Bind10.png
+
+    [SerializeField]
+    private Transform currentPlayerMistHolder;
+
+
+    private int[] playerBindCount = new int[4];
 
     private Dictionary<int, int> holeOwnerByPathIndex =
     new Dictionary<int, int>();
@@ -143,7 +158,7 @@ public class MistEffectManager : MonoBehaviour
             // =========================
             case GameManager.MistColor.Red:
                 {
-                    return MistEffectType.ColorBall;
+                    return MistEffectType.Bind;
                 }
 
 
@@ -295,12 +310,14 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Bind:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : Bind"
                 );
 
-                // TODO:
-                // 敵にBindを2個付与
+                ActivateBind(
+                    playerIndex
+                );
 
                 break;
 
@@ -717,6 +734,66 @@ public class MistEffectManager : MonoBehaviour
             $"{newColor} に変更"
         );
     }
+
+    // =========================================================
+    // Red : Bind
+    // 敵プレイヤー1人にBindを2個付与
+    // =========================================================
+    // =========================================================
+    // Red : Bind
+    // 敵プレイヤー1人にBindを2個付与
+    // =========================================================
+    void ActivateBind(int attackerPlayerIndex)
+    {
+        if (gameManager == null)
+        {
+            Debug.LogWarning(
+                "[Bind] GameManager が設定されていません"
+            );
+            return;
+        }
+
+        List<int> candidates =
+            new List<int>();
+
+        int playerCount =
+            gameManager.GetPlayerCount();
+
+        for (int i = 0; i < playerCount; i++)
+        {
+            // 自分は対象外
+            if (i == attackerPlayerIndex)
+                continue;
+
+            candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log(
+                "[Bind] 対象プレイヤーがいません"
+            );
+            return;
+        }
+
+        int targetPlayerIndex =
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
+
+        AddBind(
+            targetPlayerIndex,
+            2
+        );
+
+        Debug.Log(
+            $"[Bind] Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} にBind +2"
+        );
+    }
     void CreateHoleVisual(
     int holePathIndex,
     int playerIndex
@@ -832,6 +909,186 @@ public class MistEffectManager : MonoBehaviour
             holeVisualsByPathIndex.Remove(
                 holePathIndex
             );
+        }
+    }
+
+    // =========================================================
+    // Bind : 付与
+    // =========================================================
+    public void AddBind(
+        int playerIndex,
+        int amount
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerBindCount.Length
+        )
+        {
+            return;
+        }
+
+        if (amount <= 0)
+            return;
+
+        playerBindCount[playerIndex] += amount;
+
+        Debug.Log(
+            $"[Bind] Player {playerIndex + 1} " +
+            $"+{amount} → 合計 {playerBindCount[playerIndex]}"
+        );
+
+        RefreshBindUI();
+    }
+
+
+    // =========================================================
+    // Bind : 移動時に消費
+    // =========================================================
+    public int ApplyBindToMovement(
+        int playerIndex,
+        int moveAmount
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerBindCount.Length
+        )
+        {
+            return moveAmount;
+        }
+
+        if (moveAmount <= 0)
+            return moveAmount;
+
+        int bindCount =
+            playerBindCount[playerIndex];
+
+        int consumed =
+            Mathf.Min(
+                bindCount,
+                moveAmount
+            );
+
+        playerBindCount[playerIndex] -=
+            consumed;
+
+        int remainingMove =
+            moveAmount - consumed;
+
+        Debug.Log(
+            $"[Bind] Player {playerIndex + 1} / " +
+            $"移動 {moveAmount} - Bind {consumed} " +
+            $"= 実移動 {remainingMove} / " +
+            $"残Bind {playerBindCount[playerIndex]}"
+        );
+
+        RefreshBindUI();
+
+        return remainingMove;
+    }
+
+
+    // =========================================================
+    // Bind : CurrentPlayer_mist 表示更新
+    // =========================================================
+    public void RefreshBindUI()
+    {
+        if (
+            gameManager == null ||
+            currentPlayerMistHolder == null
+        )
+        {
+            return;
+        }
+
+        Transform oldBind =
+            currentPlayerMistHolder.Find(
+                "BindStatus"
+            );
+
+        if (oldBind != null)
+        {
+            Destroy(
+                oldBind.gameObject
+            );
+        }
+
+        int playerIndex =
+            gameManager.GetCurrentPlayerIndex();
+
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerBindCount.Length
+        )
+        {
+            return;
+        }
+
+        int bindCount =
+            playerBindCount[playerIndex];
+
+        // 0個なら表示なし
+        if (bindCount <= 0)
+            return;
+
+        if (
+            bindSprites == null ||
+            bindSprites.Length == 0
+        )
+        {
+            Debug.LogWarning(
+                "[Bind UI] Bind Sprites が設定されていません"
+            );
+            return;
+        }
+
+        GameObject iconPrefab =
+            gameManager.GetStatusIconPrefab();
+
+        if (iconPrefab == null)
+        {
+            Debug.LogWarning(
+                "[Bind UI] Icon Prefab が設定されていません"
+            );
+            return;
+        }
+
+        int spriteIndex =
+            Mathf.Clamp(
+                bindCount - 1,
+                0,
+                bindSprites.Length - 1
+            );
+
+        Sprite sprite =
+            bindSprites[spriteIndex];
+
+        if (sprite == null)
+            return;
+
+        GameObject icon =
+            Instantiate(
+                iconPrefab,
+                currentPlayerMistHolder
+            );
+
+        icon.name =
+            "BindStatus";
+
+        Image image =
+            icon.GetComponent<Image>();
+
+        if (image != null)
+        {
+            image.sprite =
+                sprite;
+
+            image.enabled =
+                true;
+
+            image.color =
+                Color.white;
         }
     }
 }
