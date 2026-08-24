@@ -143,9 +143,7 @@ public class MistEffectManager : MonoBehaviour
             // =========================
             case GameManager.MistColor.Red:
                 {
-                    // ★ HoleTrap動作確認用
-                    // テスト終了後に4種類ランダムへ戻す
-                    return MistEffectType.HoleTrap;
+                    return MistEffectType.Shot;
                 }
 
 
@@ -272,13 +270,14 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Shot:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : Shot"
                 );
 
-                // TODO:
-                // 敵プレイヤーのMistを
-                // ランダムで1つ破壊
+                ActivateShot(
+                    playerIndex
+                );
 
                 break;
 
@@ -540,7 +539,97 @@ public class MistEffectManager : MonoBehaviour
         );
     }
 
+    // =========================================================
+    // Red : Shot
+    // 敵プレイヤーのMistをランダムで1つ破壊
+    // =========================================================
+    void ActivateShot(int attackerPlayerIndex)
+    {
+        if (gameManager == null)
+        {
+            Debug.LogWarning(
+                "[Shot] GameManager が設定されていません"
+            );
+            return;
+        }
 
+        // =========================================
+        // Mistを持っている敵プレイヤーを探す
+        // =========================================
+        List<int> candidates =
+            new List<int>();
+
+        for (int i = 0; i < 4; i++)
+        {
+            // 自分自身は対象外
+            if (i == attackerPlayerIndex)
+                continue;
+
+            // Mistを1個以上持っているプレイヤーだけ対象
+            if (gameManager.GetMistCount(i) <= 0)
+                continue;
+
+            candidates.Add(i);
+        }
+
+        // =========================================
+        // 対象が誰もいない
+        // =========================================
+        if (candidates.Count == 0)
+        {
+            Debug.Log(
+                $"[Shot] Player {attackerPlayerIndex + 1} / " +
+                "破壊できる敵Mistがありません"
+            );
+
+            return;
+        }
+
+        // =========================================
+        // 敵プレイヤーをランダムで1人選択
+        // =========================================
+        int targetPlayerIndex =
+            candidates[
+                Random.Range(
+                    0,
+                    candidates.Count
+                )
+            ];
+
+        // =========================================
+        // そのプレイヤーのMistからランダムで1個選択
+        // =========================================
+        int mistCount =
+            gameManager.GetMistCount(
+                targetPlayerIndex
+            );
+
+        int targetMistIndex =
+            Random.Range(
+                0,
+                mistCount
+            );
+
+        GameManager.MistColor destroyedMist =
+            gameManager.GetMist(
+                targetPlayerIndex,
+                targetMistIndex
+            );
+
+        // =========================================
+        // Mist破壊
+        // =========================================
+        gameManager.RemoveMist(
+            targetPlayerIndex,
+            targetMistIndex
+        );
+
+        Debug.Log(
+            $"[Shot] Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} / " +
+            $"{destroyedMist} Mistを破壊"
+        );
+    }
     void CreateHoleVisual(
     int holePathIndex,
     int playerIndex

@@ -585,6 +585,72 @@ public class GameManager : MonoBehaviour
         }
     }
 
+
+    // =========================================================
+    // MistEffectManagerなど外部から使うMist所持データ操作
+    // =========================================================
+
+    // 指定プレイヤーが持っているMistの数を取得
+    public int GetMistCount(int playerIndex)
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count
+        )
+        {
+            return 0;
+        }
+
+        return playerMists[playerIndex].Count;
+    }
+
+
+    // 指定プレイヤーの指定位置にあるMistを取得
+    public MistColor GetMist(
+        int playerIndex,
+        int mistIndex
+    )
+    {
+        return playerMists[playerIndex][mistIndex];
+    }
+
+
+    // 指定プレイヤーのMistを1個削除
+    public void RemoveMist(
+        int playerIndex,
+        int mistIndex
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count
+        )
+        {
+            return;
+        }
+
+        if (
+            mistIndex < 0 ||
+            mistIndex >= playerMists[playerIndex].Count
+        )
+        {
+            return;
+        }
+
+        MistColor removedMist =
+            playerMists[playerIndex][mistIndex];
+
+        playerMists[playerIndex].RemoveAt(
+            mistIndex
+        );
+
+        Debug.Log(
+            $"[Mist] Player {playerIndex + 1} の " +
+            $"{removedMist} Mistを削除"
+        );
+
+        RefreshAllPlayerUI();
+    }
     // =========================================================
     // Mist Panel
     // =========================================================
