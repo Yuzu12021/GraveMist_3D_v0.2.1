@@ -118,7 +118,39 @@ public class MistEffectManager : MonoBehaviour
     private int[] playerProtectorCount =
         new int[4];
 
+    [Header("Counter")]
+    [SerializeField]
+    private Sprite counterSprite;
 
+    // 残りターン数
+    private int[] playerCounterTurns =
+        new int[4];
+
+
+    // =========================================================
+    // Counter : 発動可能か確認
+    // =========================================================
+    public bool HasCounter(
+        int playerIndex
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerCounterTurns.Length
+        )
+        {
+            return false;
+        }
+
+        return playerCounterTurns[playerIndex] > 0;
+    }
+
+    public enum CounterResult
+    {
+        None,           // Counterなし
+        CounterSuccess, // Counter成功、反撃も通った
+        CounterBlocked  // Counter発動、ただし反撃はProtectorで防がれた
+    }
     // =========================================================
     // 外部から呼ぶ入口
     // =========================================================
@@ -354,12 +386,15 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Counter:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : Counter"
                 );
 
-                // TODO:
-                // 自分に2ターンCounter付与
+                AddCounter(
+                    playerIndex,
+                    2
+                );
 
                 break;
 
@@ -1349,5 +1384,141 @@ public class MistEffectManager : MonoBehaviour
             countImage.color =
                 Color.white;
         }
+    }
+
+    // =========================================================
+    // Blue : Counter
+    // 自分にCounterを指定ターン付与
+    // =========================================================
+    public void AddCounter(
+        int playerIndex,
+        int turns
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerCounterTurns.Length
+        )
+        {
+            return;
+        }
+
+        if (turns <= 0)
+            return;
+
+        playerCounterTurns[playerIndex] +=
+            turns;
+
+        Debug.Log(
+            $"[Counter] Player {playerIndex + 1} " +
+            $"+{turns}ターン → 残り {playerCounterTurns[playerIndex]}ターン"
+        );
+
+        RefreshCounterUI();
+    }
+
+
+    // =========================================================
+    // Counter残りターン取得
+    // =========================================================
+    public int GetCounterTurns(
+        int playerIndex
+    )
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerCounterTurns.Length
+        )
+        {
+            return 0;
+        }
+
+        return playerCounterTurns[
+            playerIndex
+        ];
+    }
+
+
+    // =========================================================
+    // Counter UI更新
+    // =========================================================
+    public void RefreshCounterUI()
+    {
+        if (gameManager == null)
+            return;
+
+        int playerIndex =
+            gameManager.GetCurrentPlayerIndex();
+
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerCounterTurns.Length
+        )
+        {
+            return;
+        }
+
+        RefreshStatusIcon(
+            "CounterStatus",
+            counterSprite,
+            playerCounterTurns[playerIndex]
+        );
+    }
+    // =========================================================
+    // Counter : 攻撃を反射
+    // defender が攻撃を無効化し、attackerへ反撃
+    // =========================================================
+    // =========================================================
+    // Counter : 攻撃を無効化して反撃
+    // =========================================================
+    public CounterResult TryCounterAttack(
+        int attackerPlayerIndex,
+        int defenderPlayerIndex
+    )
+    {
+        if (
+            defenderPlayerIndex < 0 ||
+            defenderPlayerIndex >= playerCounterTurns.Length
+        )
+        {
+            return CounterResult.None;
+        }
+
+        // Counterなし
+        if (
+            playerCounterTurns[defenderPlayerIndex] <= 0
+        )
+        {
+            return CounterResult.None;
+        }
+
+        Debug.Log(
+            $"[Counter] Player {defenderPlayerIndex + 1} が " +
+            $"Player {attackerPlayerIndex + 1} の攻撃を無効化"
+        );
+
+        // =========================================
+        // 反撃先のProtector判定
+        // =========================================
+        if (
+            TryBlockWithProtector(
+                attackerPlayerIndex,
+                "Counter Attack"
+            )
+        )
+        {
+            Debug.Log(
+                $"[Counter] Player {attackerPlayerIndex + 1} の " +
+                $"Protectorによって反撃は無効化"
+            );
+
+            return CounterResult.CounterBlocked;
+        }
+
+        Debug.Log(
+            $"[Counter] Player {defenderPlayerIndex + 1} の反撃成功"
+        );
+
+        return CounterResult.CounterSuccess;
     }
 }

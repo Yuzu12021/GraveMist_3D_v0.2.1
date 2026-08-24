@@ -226,7 +226,24 @@ public class GameManager : MonoBehaviour
 
         return false;
     }
+    int GetStoppedPlayerIndex()
+    {
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (i == currentPlayerIndex)
+                continue;
 
+            if (
+                playerPathIndices[i] ==
+                CurrentPathIndex
+            )
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
     void Awake()
     {
         Physics.gravity = new Vector3(0f, -20f, 0f);
@@ -1810,8 +1827,11 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // 移動終了後
         // =========================================
 
+        int stoppedPlayerIndex =
+    GetStoppedPlayerIndex();
+
         bool stoppedOnOtherPlayer =
-            IsStoppedOnOtherPlayer();
+            stoppedPlayerIndex >= 0;
 
         Vector2Int stopGrid =
             boardManager.outerPath[CurrentPathIndex];
@@ -1850,25 +1870,80 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         {
             Debug.Log(
                 $"Player {currentPlayerIndex + 1} " +
-                $"stopped on another player " +
-                $"→ Attack / Extra Turn"
+                $"→ Player {stoppedPlayerIndex + 1} を攻撃"
             );
 
-            // クラシック：
-            // 攻撃成功 → Mist +1
-            GiveMist(
-                currentPlayerIndex,
-                1
-            );
+            CounterResult counterResult =
+                CounterResult.None;
 
-            // ターン交代せず
-            // 同じプレイヤーでもう一度
+            if (mistEffectManager != null)
+            {
+                counterResult =
+                    mistEffectManager.TryCounterAttack(
+                        currentPlayerIndex,
+                        stoppedPlayerIndex
+                    );
+            }
+
+            // =========================================
+            // Counterなし → 通常攻撃成功
+            // =========================================
+            if (counterResult == CounterResult.None)
+            {
+                GiveMist(
+                    currentPlayerIndex,
+                    1
+                );
+
+                Debug.Log(
+                    $"[Attack] Player {currentPlayerIndex + 1} Mist +1"
+                );
+            }
+
+            // =========================================
+            // Counter成功 → 防御側にMist +1
+            // =========================================
+            else if (
+                counterResult ==
+                CounterResult.CounterSuccess
+            )
+            {
+                GiveMist(
+                    stoppedPlayerIndex,
+                    1
+                );
+
+                Debug.Log(
+                    $"[Counter Attack] Player {stoppedPlayerIndex + 1} Mist +1"
+                );
+            }
+
+            // =========================================
+            // Counterは発動したが
+            // 反撃はProtectorで防がれた
+            // =========================================
+            else if (
+                counterResult ==
+                CounterResult.CounterBlocked
+            )
+            {
+                Debug.Log(
+                    "[Counter Attack] 反撃はProtectorで無効化 " +
+                    "→ Mist増加なし"
+                );
+            }
+
+            // =========================================
+            // 停止攻撃なので再ターン
+            // =========================================
             EnterTurnStart();
 
             RefreshAllPlayerUI();
 
             if (mistEffectManager != null)
             {
+                mistEffectManager.RefreshCounterUI();
+                mistEffectManager.RefreshProtectorUI();
                 mistEffectManager.RefreshBindUI();
             }
 
