@@ -3795,6 +3795,74 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_AspectMode: 2
   m_AspectRatio: 3.2155173
+--- !u!1 &909950880
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 909950882}
+  - component: {fileID: 909950881}
+  m_Layer: 0
+  m_Name: MistEffectManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &909950881
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 909950880}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 516a209679ac2d442bdfe1fda05710fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameManager: {fileID: 961388617}
+  boardManager: {fileID: 53876680}
+  holeMarkerPrefab: {fileID: 8736729115478192418, guid: b7f4dc61f5c4b264787a18349605abb8, type: 3}
+  holeSprites:
+  - {fileID: 21300000, guid: a4942ffacba92434e8c4094a6a9d2c69, type: 3}
+  - {fileID: 21300000, guid: 0338138017df6fa449d74eddfc42cba1, type: 3}
+  - {fileID: 21300000, guid: c1d9d7debe9848a4c8878d2a4d40fc02, type: 3}
+  - {fileID: 21300000, guid: 4d36641bf56f11f4eb2e9a256d715d02, type: 3}
+  currentPlayerMistHolder: {fileID: 890336589}
+  statusCountSprites:
+  - {fileID: 21300000, guid: d475dfc992aebae49a84a974f0635e26, type: 3}
+  - {fileID: 21300000, guid: 4dceca9550bd4cf46a0fd2e72a1bc174, type: 3}
+  - {fileID: 21300000, guid: ec81fdbfd3e07ee47bf4aa2accd204ba, type: 3}
+  - {fileID: 21300000, guid: 75aa4555028917648a1a66d77ff0c7e4, type: 3}
+  - {fileID: 21300000, guid: b9eb60039c5635d4fa49a3f7b18693f3, type: 3}
+  - {fileID: 21300000, guid: c0a4346355f300f47ba55cdeeac402f1, type: 3}
+  - {fileID: 21300000, guid: 9f41679cb63d6e048b6b789e1b340da0, type: 3}
+  - {fileID: 21300000, guid: ab03eb384bb6cfc4c972dbec14210049, type: 3}
+  - {fileID: 21300000, guid: 2044b895102bfa8498a8f450f042e47c, type: 3}
+  - {fileID: 21300000, guid: 4ef2b50c118ac8746b52728191482647, type: 3}
+  bindSprite: {fileID: 21300000, guid: c24cb5a3a9730df4ab98062b11e5b8cc, type: 3}
+  protectorSprite: {fileID: 21300000, guid: 6d46df85b1c6e324badbbdf733abab31, type: 3}
+  counterSprite: {fileID: 21300000, guid: 08997bca6dc2acf4799450841c3e39d9, type: 3}
+  mistPlusSprite: {fileID: 21300000, guid: 6445512508ad0c8498f1c6e36fecafa8, type: 3}
+--- !u!4 &909950882
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 909950880}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.57233226, y: 3.1845882, z: 2.3899944}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &961388616
 GameObject:
   m_ObjectHideFlags: 0
@@ -3907,7 +3975,6 @@ MonoBehaviour:
   - "\u30E4\u30C3\u30C4\u30A3\u30FC"
   - "\u30B1\u30F3\u30BB\u30EB"
   - "\u30AF\u30FC\u30EB\uFF06\u30D3\u30BA"
-  autoEvolutionByMP: 1
   evolutionInitialSprite: {fileID: 21300000, guid: d42ce24af48af5b409ae2db8875de7b4, type: 3}
   playerEvolutionSprites:
   - level1: {fileID: 21300000, guid: 56341a06c249a9d42aa7ebbe5e615680, type: 3}
@@ -4016,15 +4083,9 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 9cf0f007b4aa25c42b4f2c0fe648b8b4, type: 3}
   currentPlayerMistHolder: {fileID: 890336589}
   usedMistIconPrefab: {fileID: 1716449580009206791, guid: 852cac66a223066468db5875269ca4f0, type: 3}
+  mistEffectManager: {fileID: 909950881}
   mpEvolutionCost: 20
-  allowFinalEvolutionByMP: 1
   currentState: 0
-  holeMarkerPrefab: {fileID: 3117015758063649390, guid: 0257324883d602b4891d9af63ec7a083, type: 3}
-  holeSprites:
-  - {fileID: 21300000, guid: fc469074efc3c364faf65a1fff4f2159, type: 3}
-  - {fileID: 21300000, guid: 5b25c49e90a34b44196c3f78edb3e594, type: 3}
-  - {fileID: 21300000, guid: 4e654a7589da1254abd680070d360b8c, type: 3}
-  - {fileID: 21300000, guid: 1ac9e6694f774be43b2e069239d7be75, type: 3}
 --- !u!4 &961388618
 Transform:
   m_ObjectHideFlags: 0
@@ -8893,3 +8954,4 @@ SceneRoots:
   - {fileID: 53876679}
   - {fileID: 978147554}
   - {fileID: 650616395}
+  - {fileID: 909950882}

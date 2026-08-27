@@ -117,6 +117,15 @@ public class GameManager : MonoBehaviour
     private readonly List<int> playerStartPathIndices = new List<int>();
     private readonly List<List<MistColor>> playerMists = new List<List<MistColor>>();
 
+    // =========================================================
+    // 新Mistデータ
+    // 色 + 効果 + Analyzer公開状態を保持
+    //
+    // 移行中は旧 playerMists と並行して使用する
+    // =========================================================
+    private readonly List<List<MistData>> playerMistData =
+        new List<List<MistData>>();
+
     private readonly int[] playerEvolutionLevels = new int[4];
 
     private const int MAX_MIST = 7;
@@ -200,6 +209,25 @@ public class GameManager : MonoBehaviour
         Yellow = 4,
         Black = 5
     }
+
+    [System.Serializable]
+    public class MistData
+    {
+        public MistColor color;
+        public MistEffectType effect;
+        public bool isAnalyzed;
+
+        public MistData(
+            MistColor color,
+            MistEffectType effect
+        )
+        {
+            this.color = color;
+            this.effect = effect;
+            this.isAnalyzed = false;
+        }
+    }
+
     public GameState currentState = GameState.Idle;
 
     private GameObject CurrentPlayer => players[currentPlayerIndex];
@@ -487,7 +515,9 @@ public class GameManager : MonoBehaviour
         players.Clear();
         playerPathIndices.Clear();
         playerStartPathIndices.Clear();
+
         playerMists.Clear();
+        playerMistData.Clear();
 
         Vector2Int[] allStartGrids = new Vector2Int[]
         {
@@ -546,6 +576,10 @@ public class GameManager : MonoBehaviour
             playerPathIndices.Add(pathIndex);
             playerStartPathIndices.Add(pathIndex);
             playerMists.Add(new List<MistColor>());
+
+            playerMistData.Add(
+                new List<MistData>()
+            );
         }
 
         currentPlayerIndex = 0;
@@ -558,58 +592,203 @@ public class GameManager : MonoBehaviour
         {
             for (int j = 0; j < START_MIST; j++)
             {
-                // 赤・青・緑・黄のみ
-                // Black(5)は初期配布では出さない
-                MistColor mist =
+                // =========================================
+                // 色を抽選
+                // 初期配布ではBlackなし
+                // =========================================
+                MistColor mistColor =
                     (MistColor)Random.Range(1, 5);
 
-                playerMists[i].Add(mist);
+                // 旧データにも保持
+                playerMists[i].Add(
+                    mistColor
+                );
+
+
+                // =========================================
+                // 新MistData
+                // 色が決まった時点で効果も抽選
+                // =========================================
+                MistEffectType effect =
+                    MistEffectType.HoleTrap;
+
+                if (mistEffectManager != null)
+                {
+                    effect =
+                        mistEffectManager.GetRandomEffectForColor(
+                            mistColor
+                        );
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "[MistData] MistEffectManager が設定されていません"
+                    );
+                }
+
+
+                MistData data =
+                    new MistData(
+                        mistColor,
+                        effect
+                    );
+
+                playerMistData[i].Add(
+                    data
+                );
+
+
+                Debug.Log(
+                    $"[Initial Mist] " +
+                    $"Player {i + 1} / " +
+                    $"Color={mistColor} / " +
+                    $"Effect={effect}"
+                );
             }
         }
     }
 
-    void GiveMist(int playerIndex, int amount)
+    void GiveMist(
+    int playerIndex,
+    int amount
+)
     {
-        if (playerIndex < 0 || playerIndex >= playerMists.Count)
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count
+        )
+        {
             return;
+        }
+
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMistData.Count
+        )
+        {
+            return;
+        }
 
         if (amount <= 0)
             return;
 
+
+        // =========================================
+        // MistPlus適用
+        // =========================================
+        if (mistEffectManager != null)
+        {
+            amount =
+                mistEffectManager.ApplyMistPlus(
+                    playerIndex,
+                    amount
+                );
+        }
+
+
         for (int i = 0; i < amount; i++)
         {
-            // 所持上限ならMistは増やさずMP+1
-            if (playerMists[playerIndex].Count >= MAX_MIST)
+            // =========================================
+            // Mist所持上限
+            // 上限ならMistではなくMP+1
+            // =========================================
+            if (
+                playerMists[playerIndex].Count >=
+                MAX_MIST
+            )
             {
-                AddMP(playerIndex, 1);
+                AddMP(
+                    playerIndex,
+                    1
+                );
 
                 Debug.Log(
-                    $"Player {playerIndex + 1} はMist上限のため MP +1"
+                    $"Player {playerIndex + 1} は " +
+                    $"Mist上限のため MP +1"
                 );
 
                 continue;
             }
 
-            // 通常獲得は赤・青・緑・黄のみ
-            MistColor mist =
-                (MistColor)Random.Range(1, 5);
 
-            playerMists[playerIndex].Add(mist);
+            // =========================================
+            // 色を抽選
+            // 通常獲得はBlackなし
+            // =========================================
+            MistColor mistColor =
+                (MistColor)Random.Range(
+                    1,
+                    5
+                );
+
+
+            // =========================================
+            // 効果もこの時点で抽選
+            // =========================================
+            MistEffectType effect =
+                MistEffectType.HoleTrap;
+
+            if (mistEffectManager != null)
+            {
+                effect =
+                    mistEffectManager.GetRandomEffectForColor(
+                        mistColor
+                    );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[MistData] MistEffectManager が設定されていません"
+                );
+            }
+
+
+            // =========================================
+            // 旧データ
+            // =========================================
+            playerMists[playerIndex].Add(
+                mistColor
+            );
+
+
+            // =========================================
+            // 新データ
+            // =========================================
+            MistData data =
+                new MistData(
+                    mistColor,
+                    effect
+                );
+
+            playerMistData[playerIndex].Add(
+                data
+            );
+
 
             Debug.Log(
-                $"Player {playerIndex + 1} Mist獲得: {mist}"
+                $"[Mist Gain] " +
+                $"Player {playerIndex + 1} / " +
+                $"Color={mistColor} / " +
+                $"Effect={effect}"
             );
         }
 
+
+        // =========================================
+        // UI更新
+        // =========================================
         RefreshAllPlayerUI();
 
         if (
             mistPanel != null &&
             mistPanel.activeSelf &&
-            playerIndex == currentPlayerIndex
+            playerIndex ==
+            currentPlayerIndex
         )
         {
-            RefreshMistPanelUI(playerIndex);
+            RefreshMistPanelUI(
+                playerIndex
+            );
         }
     }
 
@@ -1873,22 +2052,25 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 $"→ Player {stoppedPlayerIndex + 1} を攻撃"
             );
 
-            CounterResult counterResult =
-                CounterResult.None;
+            AttackResult attackResult =
+                AttackResult.NormalHit;
 
             if (mistEffectManager != null)
             {
-                counterResult =
-                    mistEffectManager.TryCounterAttack(
+                attackResult =
+                    mistEffectManager.ResolveAttack(
                         currentPlayerIndex,
                         stoppedPlayerIndex
                     );
             }
 
             // =========================================
-            // Counterなし → 通常攻撃成功
+            // 通常攻撃成功
             // =========================================
-            if (counterResult == CounterResult.None)
+            if (
+                attackResult ==
+                AttackResult.NormalHit
+            )
             {
                 GiveMist(
                     currentPlayerIndex,
@@ -1896,16 +2078,31 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 );
 
                 Debug.Log(
-                    $"[Attack] Player {currentPlayerIndex + 1} Mist +1"
+                    $"[Attack] " +
+                    $"Player {currentPlayerIndex + 1} Mist +1"
                 );
             }
 
             // =========================================
-            // Counter成功 → 防御側にMist +1
+            // Protectorで通常攻撃を防御
             // =========================================
             else if (
-                counterResult ==
-                CounterResult.CounterSuccess
+                attackResult ==
+                AttackResult.BlockedByProtector
+            )
+            {
+                Debug.Log(
+                    "[Attack] Protectorにより無効 " +
+                    "→ Mist増加なし"
+                );
+            }
+
+            // =========================================
+            // Counter反撃成功
+            // =========================================
+            else if (
+                attackResult ==
+                AttackResult.CounterHit
             )
             {
                 GiveMist(
@@ -1914,37 +2111,41 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 );
 
                 Debug.Log(
-                    $"[Counter Attack] Player {stoppedPlayerIndex + 1} Mist +1"
+                    $"[Counter] " +
+                    $"Player {stoppedPlayerIndex + 1} Mist +1"
                 );
             }
 
             // =========================================
             // Counterは発動したが
-            // 反撃はProtectorで防がれた
+            // 攻撃者Protectorで反撃防御
             // =========================================
             else if (
-                counterResult ==
-                CounterResult.CounterBlocked
+                attackResult ==
+                AttackResult.CounterBlocked
             )
             {
                 Debug.Log(
-                    "[Counter Attack] 反撃はProtectorで無効化 " +
+                    "[Counter] 反撃もProtectorで無効 " +
                     "→ Mist増加なし"
                 );
             }
 
             // =========================================
-            // 停止攻撃なので再ターン
+            // ここで今の手番は終了
+            // ただし停止攻撃なので同じ人が再手番
             // =========================================
+            ProcessEndOfTurn(
+                currentPlayerIndex
+            );
+
             EnterTurnStart();
 
             RefreshAllPlayerUI();
 
             if (mistEffectManager != null)
             {
-                mistEffectManager.RefreshCounterUI();
-                mistEffectManager.RefreshProtectorUI();
-                mistEffectManager.RefreshBindUI();
+                mistEffectManager.RefreshAllStatusUI();
             }
 
             FadeCurrentPlayerPanel(true);
@@ -2058,7 +2259,7 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
         if (mistEffectManager != null)
         {
-            mistEffectManager.RefreshBindUI();
+            mistEffectManager.RefreshAllStatusUI();
         }
 
         FadeCurrentPlayerPanel(true);
@@ -2079,20 +2280,55 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
             Destroy(child.gameObject);
         }
     }
-    void ProcessEndOfTurn(int playerIndex)
+    void ProcessEndOfTurn(
+    int playerIndex
+)
     {
-        if (playerIndex < 0 || playerIndex >= playerMistPlusBuff.Length) return;
-
-        if (playerMistPlusBuff[playerIndex])
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMistPlusBuff.Length
+        )
         {
-            Debug.Log($"Player {playerIndex + 1} の Mist+1 バフが終了");
-            playerMistPlusBuff[playerIndex] = false;
+            return;
         }
 
+        // =========================================
+        // 旧MistPlus
+        // =========================================
+        if (playerMistPlusBuff[playerIndex])
+        {
+            Debug.Log(
+                $"Player {playerIndex + 1} の " +
+                $"Mist+1 バフが終了"
+            );
+
+            playerMistPlusBuff[playerIndex] =
+                false;
+        }
+
+        // =========================================
+        // 旧Cake
+        // =========================================
         if (playerCakeBuff[playerIndex])
         {
-            Debug.Log($"Player {playerIndex + 1} の Cake バフが終了");
-            playerCakeBuff[playerIndex] = false;
+            Debug.Log(
+                $"Player {playerIndex + 1} の " +
+                $"Cake バフが終了"
+            );
+
+            playerCakeBuff[playerIndex] =
+                false;
+        }
+
+        // =========================================
+        // MistEffectManager側の
+        // ターンタイプ状態を1ターン進める
+        // =========================================
+        if (mistEffectManager != null)
+        {
+            mistEffectManager.OnPlayerTurnEnded(
+                playerIndex
+            );
         }
     }
     void ResetMistZoomImmediate()

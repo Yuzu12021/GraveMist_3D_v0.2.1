@@ -2,47 +2,98 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
+
+// =========================================================
+// Mist効果一覧
+// =========================================================
 public enum MistEffectType
 {
-    // =========================
     // Red
-    // =========================
     HoleTrap,
     Shot,
     ColorBall,
     Bind,
 
-    // =========================
     // Blue
-    // =========================
     Protector,
     Analyzer,
     Counter,
     MistPlus,
 
-    // =========================
     // Green
-    // =========================
     MovePlus2,
     FlashBadge,
     PowerCake,
     RespawnCoffin,
 
-    // =========================
     // Yellow
-    // =========================
     UTurn,
     TimeBomb,
     MirrorPortal,
     MagnaTornado,
 
-    // =========================
     // Black
-    // =========================
     RandomEffect,
     Jackpot,
     Bug
 }
+
+
+// =========================================================
+// 付与状態の種類
+// =========================================================
+public enum StatusEffectType
+{
+    Bind,
+    Protector,
+    Counter,
+    MistPlus
+}
+
+
+// =========================================================
+// 攻撃処理結果
+// =========================================================
+public enum AttackResult
+{
+    NormalHit,
+
+    // 防御側のProtectorで通常攻撃を無効化
+    BlockedByProtector,
+
+    // 防御側Counter発動 → 反撃成功
+    CounterHit,
+
+    // Counter発動したが
+    // 攻撃者側Protectorで反撃を防御
+    CounterBlocked
+}
+
+
+// =========================================================
+// 付与状態1件
+//
+// Listへの追加順 = 付与された順番
+// value:
+// Bind      → 個数
+// Protector → 個数
+// Counter   → 残りターン
+// =========================================================
+public class StatusEffectEntry
+{
+    public StatusEffectType type;
+    public int value;
+
+    public StatusEffectEntry(
+        StatusEffectType type,
+        int value
+    )
+    {
+        this.type = type;
+        this.value = value;
+    }
+}
+
 
 public class MistEffectManager : MonoBehaviour
 {
@@ -50,6 +101,7 @@ public class MistEffectManager : MonoBehaviour
     // References
     // =========================================================
 
+    [Header("References")]
     [SerializeField]
     private GameManager gameManager;
 
@@ -65,18 +117,20 @@ public class MistEffectManager : MonoBehaviour
     [SerializeField]
     private GameObject holeMarkerPrefab;
 
-    // Element 0 = 1P用
-    // Element 1 = 2P用
-    // Element 2 = 3P用
-    // Element 3 = 4P用
+    // Element 0 = 1P
+    // Element 1 = 2P
+    // Element 2 = 3P
+    // Element 3 = 4P
     [SerializeField]
     private Sprite[] holeSprites;
 
-    private Dictionary<int, int> holeOwnerByPathIndex =
-        new Dictionary<int, int>();
+    private readonly Dictionary<int, int>
+        holeOwnerByPathIndex =
+            new Dictionary<int, int>();
 
-    private Dictionary<int, GameObject> holeVisualsByPathIndex =
-        new Dictionary<int, GameObject>();
+    private readonly Dictionary<int, GameObject>
+        holeVisualsByPathIndex =
+            new Dictionary<int, GameObject>();
 
 
     // =========================================================
@@ -96,64 +150,52 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // Bind
+    // Status Sprites
     // =========================================================
 
     [Header("Bind")]
     [SerializeField]
     private Sprite bindSprite;
 
-    private int[] playerBindCount =
-        new int[4];
-
-
-    // =========================================================
-    // Protector
-    // =========================================================
-
     [Header("Protector")]
     [SerializeField]
     private Sprite protectorSprite;
-
-    private int[] playerProtectorCount =
-        new int[4];
 
     [Header("Counter")]
     [SerializeField]
     private Sprite counterSprite;
 
-    // 残りターン数
-    private int[] playerCounterTurns =
-        new int[4];
-
+    [Header("Mist Plus")]
+    [SerializeField]
+    private Sprite mistPlusSprite;
 
     // =========================================================
-    // Counter : 発動可能か確認
+    // Status Data
+    //
+    // ★ Listの並び順そのものが
+    //   「付与されたタイミングの早い順」
     // =========================================================
-    public bool HasCounter(
-        int playerIndex
-    )
+
+    private readonly List<StatusEffectEntry>[]
+        playerStatusEffects =
     {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerCounterTurns.Length
-        )
-        {
-            return false;
-        }
+        new List<StatusEffectEntry>(),
+        new List<StatusEffectEntry>(),
+        new List<StatusEffectEntry>(),
+        new List<StatusEffectEntry>()
+    };
 
-        return playerCounterTurns[playerIndex] > 0;
-    }
 
-    public enum CounterResult
+    // =========================================================
+    // Mist使用入口
+    // =========================================================
+
+    public MistEffectType GetRandomEffectForColor(
+    GameManager.MistColor color
+)
     {
-        None,           // Counterなし
-        CounterSuccess, // Counter成功、反撃も通った
-        CounterBlocked  // Counter発動、ただし反撃はProtectorで防がれた
+        return GetRandomEffect(color);
     }
-    // =========================================================
-    // 外部から呼ぶ入口
-    // =========================================================
 
     public MistEffectType UseMist(
         GameManager.MistColor color,
@@ -180,7 +222,7 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // 色ごとのランダム効果抽選
+    // 色別抽選
     // =========================================================
 
     MistEffectType GetRandomEffect(
@@ -189,9 +231,10 @@ public class MistEffectManager : MonoBehaviour
     {
         switch (color)
         {
-            // =========================
+            // =================================================
             // Red
-            // =========================
+            // =================================================
+
             case GameManager.MistColor.Red:
                 {
                     MistEffectType[] effects =
@@ -211,19 +254,36 @@ public class MistEffectManager : MonoBehaviour
                 }
 
 
-            // =========================
+            // =================================================
             // Blue
-            // =========================
+            // =================================================
+
             case GameManager.MistColor.Blue:
                 {
-                    // ★ Protector動作確認用
-                    return MistEffectType.Protector;
+                    MistEffectType[] effects =
+                    {
+                    MistEffectType.Protector,
+                    MistEffectType.Analyzer,
+                    MistEffectType.Counter,
+                    MistEffectType.MistPlus
+                };
+
+                    return effects[
+                        Random.Range(
+                            0,
+                            effects.Length
+                        )
+                    ];
+
+                    // Counterテスト時は↑をコメントアウトして
+                    // return MistEffectType.Counter;
                 }
 
 
-            // =========================
+            // =================================================
             // Green
-            // =========================
+            // =================================================
+
             case GameManager.MistColor.Green:
                 {
                     MistEffectType[] effects =
@@ -243,9 +303,10 @@ public class MistEffectManager : MonoBehaviour
                 }
 
 
-            // =========================
+            // =================================================
             // Yellow
-            // =========================
+            // =================================================
+
             case GameManager.MistColor.Yellow:
                 {
                     MistEffectType[] effects =
@@ -265,9 +326,10 @@ public class MistEffectManager : MonoBehaviour
                 }
 
 
-            // =========================
+            // =================================================
             // Black
-            // =========================
+            // =================================================
+
             case GameManager.MistColor.Black:
                 {
                     MistEffectType[] effects =
@@ -287,7 +349,7 @@ public class MistEffectManager : MonoBehaviour
         }
 
         Debug.LogWarning(
-            $"未定義のMistColorです: {color}"
+            $"未定義MistColor: {color}"
         );
 
         return MistEffectType.HoleTrap;
@@ -305,14 +367,11 @@ public class MistEffectManager : MonoBehaviour
     {
         switch (effect)
         {
-            // =====================================================
+            // =================================================
             // Red
-            // =====================================================
+            // =================================================
 
             case MistEffectType.HoleTrap:
-                Debug.Log(
-                    $"Player {playerIndex + 1} : HoleTrap"
-                );
 
                 ActivateHole(
                     playerIndex
@@ -322,9 +381,6 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Shot:
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Shot"
-                );
 
                 ActivateShot(
                     playerIndex
@@ -334,9 +390,6 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.ColorBall:
-                Debug.Log(
-                    $"Player {playerIndex + 1} : ColorBall"
-                );
 
                 ActivateColorBall(
                     playerIndex
@@ -346,9 +399,6 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Bind:
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Bind"
-                );
 
                 ActivateBind(
                     playerIndex
@@ -357,14 +407,11 @@ public class MistEffectManager : MonoBehaviour
                 break;
 
 
-            // =====================================================
+            // =================================================
             // Blue
-            // =====================================================
+            // =================================================
 
             case MistEffectType.Protector:
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Protector"
-                );
 
                 AddProtector(
                     playerIndex,
@@ -375,21 +422,16 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.Analyzer:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : Analyzer"
                 );
 
-                // TODO:
-                // 現在所持中のMist効果を表示
-
+                // TODO
                 break;
 
 
             case MistEffectType.Counter:
-
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Counter"
-                );
 
                 AddCounter(
                     playerIndex,
@@ -400,150 +442,767 @@ public class MistEffectManager : MonoBehaviour
 
 
             case MistEffectType.MistPlus:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : MistPlus"
                 );
 
-                // TODO:
-                // 自分に1ターンMistPlus付与
+                AddMistPlus(
+                    playerIndex,
+                    1
+                );
 
                 break;
 
 
-            // =====================================================
+            // =================================================
             // Green
-            // =====================================================
+            // =================================================
 
             case MistEffectType.MovePlus2:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : MovePlus2"
                 );
 
-                // TODO:
-                // 自分に1ターン移動+2
-
+                // TODO
                 break;
 
 
             case MistEffectType.FlashBadge:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : FlashBadge"
                 );
 
-                // TODO:
-                // 前後3マス任意ワープ
-
+                // TODO
                 break;
 
 
             case MistEffectType.PowerCake:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : PowerCake"
                 );
 
-                // TODO:
-                // 自分に1ターン移動2倍
-
+                // TODO
                 break;
 
 
             case MistEffectType.RespawnCoffin:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : RespawnCoffin"
                 );
 
-                // TODO:
-                // 初期地点への任意ワープ
-
+                // TODO
                 break;
 
 
-            // =====================================================
+            // =================================================
             // Yellow
-            // =====================================================
+            // =================================================
 
             case MistEffectType.UTurn:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : UTurn"
                 );
 
-                // TODO:
-                // 進行方向反転
-
+                // TODO
                 break;
 
 
             case MistEffectType.TimeBomb:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : TimeBomb"
                 );
 
-                // TODO:
-                // 全ユニットに移動半減
-
+                // TODO
                 break;
 
 
             case MistEffectType.MirrorPortal:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : MirrorPortal"
                 );
 
-                // TODO:
-                // ランダム2マスにPortal設置
-
+                // TODO
                 break;
 
 
             case MistEffectType.MagnaTornado:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : MagnaTornado"
                 );
 
-                // TODO:
-                // 全員ランダムワープ
-
+                // TODO
                 break;
 
 
-            // =====================================================
+            // =================================================
             // Black
-            // =====================================================
+            // =================================================
 
             case MistEffectType.RandomEffect:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : RandomEffect"
                 );
 
-                // TODO:
-                // 通常Mistからランダム1効果
-
+                // TODO
                 break;
 
 
             case MistEffectType.Jackpot:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : Jackpot"
                 );
 
-                // TODO:
-                // 1進化
-
+                // TODO
                 break;
 
 
             case MistEffectType.Bug:
+
                 Debug.Log(
                     $"Player {playerIndex + 1} : Bug"
                 );
 
-                // TODO:
-                // 全ユニットステータス混乱
-
+                // TODO
                 break;
         }
     }
 
+
+    // =========================================================
+    // Status共通
+    // =========================================================
+
+    bool IsValidPlayerIndex(
+        int playerIndex
+    )
+    {
+        return
+            playerIndex >= 0 &&
+            playerIndex <
+            playerStatusEffects.Length;
+    }
+
+
+    void AddStatus(
+        int playerIndex,
+        StatusEffectType type,
+        int value
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return;
+
+        if (value <= 0)
+            return;
+
+        // ★ 必ず末尾へ追加
+        // これが付与順になる
+        playerStatusEffects[
+            playerIndex
+        ].Add(
+            new StatusEffectEntry(
+                type,
+                value
+            )
+        );
+
+        Debug.Log(
+            $"[Status Add] " +
+            $"Player {playerIndex + 1} / " +
+            $"{type} / value={value}"
+        );
+
+        RefreshAllStatusUI();
+    }
+
+
+    int GetStatusTotal(
+        int playerIndex,
+        StatusEffectType type
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return 0;
+
+        int total = 0;
+
+        foreach (
+            StatusEffectEntry status
+            in playerStatusEffects[playerIndex]
+        )
+        {
+            if (status.type != type)
+                continue;
+
+            total +=
+                status.value;
+        }
+
+        return total;
+    }
+
+
+    // =========================================================
+    // Bind
+    // =========================================================
+
+    public void AddBind(
+        int playerIndex,
+        int amount
+    )
+    {
+        AddStatus(
+            playerIndex,
+            StatusEffectType.Bind,
+            amount
+        );
+
+        Debug.Log(
+            $"[Bind] Player {playerIndex + 1} " +
+            $"+{amount} / " +
+            $"合計 {GetBindCount(playerIndex)}"
+        );
+    }
+
+
+    public int GetBindCount(
+        int playerIndex
+    )
+    {
+        return GetStatusTotal(
+            playerIndex,
+            StatusEffectType.Bind
+        );
+    }
+
+
+    // =========================================================
+    // Bind：移動トリガー
+    //
+    // Bindだけが「移動」に反応するため
+    // 古いBindから順に消費
+    // =========================================================
+
+    public int ApplyBindToMovement(
+        int playerIndex,
+        int moveAmount
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return moveAmount;
+
+        if (moveAmount <= 0)
+            return moveAmount;
+
+        List<StatusEffectEntry> list =
+            playerStatusEffects[
+                playerIndex
+            ];
+
+        int remainingMove =
+            moveAmount;
+
+        int consumedTotal =
+            0;
+
+        int i = 0;
+
+        while (
+            i < list.Count &&
+            remainingMove > 0
+        )
+        {
+            StatusEffectEntry status =
+                list[i];
+
+            // 移動トリガーに
+            // Bind以外は反応しない
+            if (
+                status.type !=
+                StatusEffectType.Bind
+            )
+            {
+                i++;
+                continue;
+            }
+
+            int consumed =
+                Mathf.Min(
+                    status.value,
+                    remainingMove
+                );
+
+            status.value -=
+                consumed;
+
+            remainingMove -=
+                consumed;
+
+            consumedTotal +=
+                consumed;
+
+            if (status.value <= 0)
+            {
+                list.RemoveAt(i);
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        Debug.Log(
+            $"[Bind] Player {playerIndex + 1} / " +
+            $"移動 {moveAmount} - Bind {consumedTotal} " +
+            $"= {remainingMove} / " +
+            $"残Bind {GetBindCount(playerIndex)}"
+        );
+
+        RefreshAllStatusUI();
+
+        return remainingMove;
+    }
+
+
+    // =========================================================
+    // Protector
+    // =========================================================
+
+    public void AddProtector(
+        int playerIndex,
+        int amount
+    )
+    {
+        AddStatus(
+            playerIndex,
+            StatusEffectType.Protector,
+            amount
+        );
+
+        Debug.Log(
+            $"[Protector] Player {playerIndex + 1} " +
+            $"+{amount} / " +
+            $"合計 {GetProtectorCount(playerIndex)}"
+        );
+    }
+
+
+    public int GetProtectorCount(
+        int playerIndex
+    )
+    {
+        return GetStatusTotal(
+            playerIndex,
+            StatusEffectType.Protector
+        );
+    }
+
+
+    // =========================================================
+    // Protector：妨害トリガー
+    //
+    // Shot / ColorBall / Bindなど。
+    //
+    // 付与順に確認するが、
+    // このトリガーに引っかかるのはProtectorだけ。
+    // =========================================================
+
+    bool TryBlockInterference(
+        int targetPlayerIndex,
+        string effectName
+    )
+    {
+        if (!IsValidPlayerIndex(targetPlayerIndex))
+            return false;
+
+        List<StatusEffectEntry> list =
+            playerStatusEffects[
+                targetPlayerIndex
+            ];
+
+        for (
+            int i = 0;
+            i < list.Count;
+            i++
+        )
+        {
+            StatusEffectEntry status =
+                list[i];
+
+            // この妨害トリガーには
+            // Protectorだけが反応
+            if (
+                status.type !=
+                StatusEffectType.Protector
+            )
+            {
+                continue;
+            }
+
+            ConsumeOneFromStatus(
+                targetPlayerIndex,
+                i
+            );
+
+            Debug.Log(
+                $"[Protector] " +
+                $"Player {targetPlayerIndex + 1} が " +
+                $"{effectName} を無効化"
+            );
+
+            RefreshAllStatusUI();
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+    void ConsumeOneFromStatus(
+        int playerIndex,
+        int listIndex
+    )
+    {
+        List<StatusEffectEntry> list =
+            playerStatusEffects[
+                playerIndex
+            ];
+
+        if (
+            listIndex < 0 ||
+            listIndex >= list.Count
+        )
+        {
+            return;
+        }
+
+        list[listIndex].value--;
+
+        if (
+            list[listIndex].value <= 0
+        )
+        {
+            list.RemoveAt(
+                listIndex
+            );
+        }
+    }
+
+
+    // =========================================================
+    // Counter
+    // =========================================================
+
+    public void AddCounter(
+        int playerIndex,
+        int turns
+    )
+    {
+        AddStatus(
+            playerIndex,
+            StatusEffectType.Counter,
+            turns
+        );
+
+        Debug.Log(
+            $"[Counter] Player {playerIndex + 1} " +
+            $"+{turns}ターン / " +
+            $"合計残り {GetCounterTurns(playerIndex)}"
+        );
+    }
+
+
+    public int GetCounterTurns(
+        int playerIndex
+    )
+    {
+        return GetStatusTotal(
+            playerIndex,
+            StatusEffectType.Counter
+        );
+    }
+
+
+    public bool HasCounter(
+        int playerIndex
+    )
+    {
+        return
+            GetCounterTurns(
+                playerIndex
+            ) > 0;
+    }
+
+
+    // =========================================================
+    // 攻撃処理
+    //
+    // ★ defenderの付与状態を
+    //   古い順から見る
+    //
+    // Protector → Counter の順で付与されていれば
+    // Protector発動
+    //
+    // Counter → Protector の順なら
+    // Counter発動
+    // =========================================================
+
+    public AttackResult ResolveAttack(
+        int attackerPlayerIndex,
+        int defenderPlayerIndex
+    )
+    {
+        if (
+            !IsValidPlayerIndex(
+                attackerPlayerIndex
+            ) ||
+            !IsValidPlayerIndex(
+                defenderPlayerIndex
+            )
+        )
+        {
+            return AttackResult.NormalHit;
+        }
+
+        List<StatusEffectEntry> defenderList =
+            playerStatusEffects[
+                defenderPlayerIndex
+            ];
+
+        // =========================================
+        // 防御側の状態を付与順で確認
+        // =========================================
+
+        for (
+            int i = 0;
+            i < defenderList.Count;
+            i++
+        )
+        {
+            StatusEffectEntry status =
+                defenderList[i];
+
+            switch (status.type)
+            {
+                // =================================
+                // Protector
+                // 被攻撃トリガーに一致
+                // =================================
+
+                case StatusEffectType.Protector:
+
+                    ConsumeOneFromStatus(
+                        defenderPlayerIndex,
+                        i
+                    );
+
+                    Debug.Log(
+                        $"[Attack] " +
+                        $"Player {defenderPlayerIndex + 1} の " +
+                        $"Protectorが先に発動 → 攻撃無効"
+                    );
+
+                    RefreshAllStatusUI();
+
+                    return
+                        AttackResult.BlockedByProtector;
+
+
+                // =================================
+                // Counter
+                // 被攻撃トリガーに一致
+                // =================================
+
+                case StatusEffectType.Counter:
+
+                    Debug.Log(
+                        $"[Counter] " +
+                        $"Player {defenderPlayerIndex + 1} が " +
+                        $"攻撃を無効化して反撃"
+                    );
+
+                    // =================================
+                    // Counterの反撃先
+                    // =================================
+                    bool counterBlocked =
+                        TryBlockCounterAttack(
+                            attackerPlayerIndex
+                        );
+
+                    RefreshAllStatusUI();
+
+                    if (counterBlocked)
+                    {
+                        return
+                            AttackResult.CounterBlocked;
+                    }
+
+                    return
+                        AttackResult.CounterHit;
+
+
+                // Bindは攻撃に反応しない
+                default:
+                    continue;
+            }
+        }
+
+        // ProtectorもCounterもなし
+        return AttackResult.NormalHit;
+    }
+
+
+    // =========================================================
+    // Counter反撃に対する防御
+    //
+    // 現時点ではCounter→Counter→Counter...の
+    // 無限連鎖を避けるため、
+    // 「Counterによる反撃」にはProtectorだけ反応させる。
+    //
+    // ここは将来ルール確定時に変更可能。
+    // =========================================================
+
+    bool TryBlockCounterAttack(
+        int targetPlayerIndex
+    )
+    {
+        if (!IsValidPlayerIndex(targetPlayerIndex))
+            return false;
+
+        List<StatusEffectEntry> list =
+            playerStatusEffects[
+                targetPlayerIndex
+            ];
+
+        for (
+            int i = 0;
+            i < list.Count;
+            i++
+        )
+        {
+            StatusEffectEntry status =
+                list[i];
+
+            if (
+                status.type !=
+                StatusEffectType.Protector
+            )
+            {
+                continue;
+            }
+
+            ConsumeOneFromStatus(
+                targetPlayerIndex,
+                i
+            );
+
+            Debug.Log(
+                $"[Counter] " +
+                $"Player {targetPlayerIndex + 1} の " +
+                $"Protectorが反撃を無効化"
+            );
+
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // =========================================================
+    // プレイヤーのターン終了
+    //
+    // ターンタイプの付与効果を1ターン進める
+    // =========================================================
+    public void OnPlayerTurnEnded(
+        int playerIndex
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return;
+
+        // Counter
+        TickTurnStatus(
+            playerIndex,
+            StatusEffectType.Counter
+        );
+
+        // MistPlus
+        TickTurnStatus(
+            playerIndex,
+            StatusEffectType.MistPlus
+        );
+
+        RefreshAllStatusUI();
+    }
+
+
+    // =========================================================
+    // ターンタイプ状態を1ターン減らす
+    //
+    // 同じ状態が複数回付与されている場合、
+    // 最も古く付与されたものから消化する
+    // =========================================================
+    void TickTurnStatus(
+        int playerIndex,
+        StatusEffectType type
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return;
+
+        List<StatusEffectEntry> list =
+            playerStatusEffects[playerIndex];
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            StatusEffectEntry status =
+                list[i];
+
+            if (status.type != type)
+                continue;
+
+            // =========================================
+            // 一番古い同種効果を1ターン減らす
+            // =========================================
+            status.value--;
+
+            Debug.Log(
+                $"[Turn Status] " +
+                $"Player {playerIndex + 1} / " +
+                $"{type} -1 → " +
+                $"{GetStatusTotal(playerIndex, type)}"
+            );
+
+            // 0になったら消滅
+            if (status.value <= 0)
+            {
+                list.RemoveAt(i);
+
+                Debug.Log(
+                    $"[Turn Status] " +
+                    $"Player {playerIndex + 1} / " +
+                    $"{type} が終了"
+                );
+            }
+
+            // ★ 1ターンで減らすのは
+            // 最も古い同種効果1件だけ
+            break;
+        }
+    }
 
     // =========================================================
     // Red : HoleTrap
@@ -573,11 +1232,11 @@ public class MistEffectManager : MonoBehaviour
             Vector2Int grid =
                 boardManager.outerPath[i];
 
-            // 角は除外
+            // 現仕様：角は除外
             if (IsCorner(grid))
                 continue;
 
-            // すでにHoleがあるマスは除外
+            // 既存Holeマスは除外
             if (
                 holeOwnerByPathIndex.ContainsKey(i)
             )
@@ -591,7 +1250,7 @@ public class MistEffectManager : MonoBehaviour
         if (candidates.Count == 0)
         {
             Debug.Log(
-                "Holeを置けるマスがありません"
+                "[HoleTrap] 設置可能マスなし"
             );
 
             return;
@@ -609,20 +1268,14 @@ public class MistEffectManager : MonoBehaviour
             holePathIndex
         ] = playerIndex;
 
-        Vector2Int holeGrid =
-            boardManager.outerPath[
-                holePathIndex
-            ];
-
-        Debug.Log(
-            $"Player {playerIndex + 1} placed Hole at " +
-            $"{holeGrid} " +
-            $"(pathIndex={holePathIndex})"
-        );
-
         CreateHoleVisual(
             holePathIndex,
             playerIndex
+        );
+
+        Debug.Log(
+            $"[HoleTrap] Player {playerIndex + 1} " +
+            $"→ pathIndex={holePathIndex}"
         );
     }
 
@@ -632,10 +1285,11 @@ public class MistEffectManager : MonoBehaviour
         out int ownerPlayerIndex
     )
     {
-        return holeOwnerByPathIndex.TryGetValue(
-            pathIndex,
-            out ownerPlayerIndex
-        );
+        return
+            holeOwnerByPathIndex.TryGetValue(
+                pathIndex,
+                out ownerPlayerIndex
+            );
     }
 
 
@@ -658,36 +1312,18 @@ public class MistEffectManager : MonoBehaviour
         int playerIndex
     )
     {
-        if (holeMarkerPrefab == null)
+        if (
+            holeMarkerPrefab == null ||
+            boardManager == null
+        )
         {
-            Debug.LogWarning(
-                "HoleTrap: Hole Marker Prefab が設定されていません"
-            );
-
             return;
         }
 
         if (
             holeSprites == null ||
-            holeSprites.Length < 4
-        )
-        {
-            Debug.LogWarning(
-                "HoleTrap: Hole Spritesを4枚設定してください"
-            );
-
-            return;
-        }
-
-        if (
             playerIndex < 0 ||
-            playerIndex >= holeSprites.Length
-        )
-        {
-            return;
-        }
-
-        if (
+            playerIndex >= holeSprites.Length ||
             holeSprites[playerIndex] == null
         )
         {
@@ -724,12 +1360,10 @@ public class MistEffectManager : MonoBehaviour
 
         if (sr == null)
         {
-            Destroy(
-                marker
-            );
+            Destroy(marker);
 
             Debug.LogWarning(
-                "HoleTrap: PrefabにSpriteRendererがありません"
+                "[HoleTrap] PrefabにSpriteRendererなし"
             );
 
             return;
@@ -749,23 +1383,23 @@ public class MistEffectManager : MonoBehaviour
     )
     {
         if (
-            holeVisualsByPathIndex.TryGetValue(
+            !holeVisualsByPathIndex.TryGetValue(
                 holePathIndex,
                 out GameObject marker
             )
         )
         {
-            if (marker != null)
-            {
-                Destroy(
-                    marker
-                );
-            }
-
-            holeVisualsByPathIndex.Remove(
-                holePathIndex
-            );
+            return;
         }
+
+        if (marker != null)
+        {
+            Destroy(marker);
+        }
+
+        holeVisualsByPathIndex.Remove(
+            holePathIndex
+        );
     }
 
 
@@ -805,12 +1439,8 @@ public class MistEffectManager : MonoBehaviour
             i++
         )
         {
-            if (
-                i == attackerPlayerIndex
-            )
-            {
+            if (i == attackerPlayerIndex)
                 continue;
-            }
 
             if (
                 gameManager.GetMistCount(i) <= 0
@@ -825,7 +1455,7 @@ public class MistEffectManager : MonoBehaviour
         if (candidates.Count == 0)
         {
             Debug.Log(
-                "[Shot] 破壊できる敵Mistがありません"
+                "[Shot] 破壊できるMistなし"
             );
 
             return;
@@ -839,8 +1469,9 @@ public class MistEffectManager : MonoBehaviour
                 )
             ];
 
+        // Protectorは妨害トリガー
         if (
-            TryBlockWithProtector(
+            TryBlockInterference(
                 targetPlayerIndex,
                 "Shot"
             )
@@ -872,9 +1503,10 @@ public class MistEffectManager : MonoBehaviour
         );
 
         Debug.Log(
-            $"[Shot] Player {attackerPlayerIndex + 1} → " +
+            $"[Shot] " +
+            $"Player {attackerPlayerIndex + 1} → " +
             $"Player {targetPlayerIndex + 1} / " +
-            $"{destroyedMist} Mistを破壊"
+            $"{destroyedMist}破壊"
         );
     }
 
@@ -902,12 +1534,8 @@ public class MistEffectManager : MonoBehaviour
             i++
         )
         {
-            if (
-                i == attackerPlayerIndex
-            )
-            {
+            if (i == attackerPlayerIndex)
                 continue;
-            }
 
             if (
                 gameManager.GetMistCount(i) <= 0
@@ -920,13 +1548,7 @@ public class MistEffectManager : MonoBehaviour
         }
 
         if (candidates.Count == 0)
-        {
-            Debug.Log(
-                "[ColorBall] 対象にできる敵がいません"
-            );
-
             return;
-        }
 
         int targetPlayerIndex =
             candidates[
@@ -937,7 +1559,7 @@ public class MistEffectManager : MonoBehaviour
             ];
 
         if (
-            TryBlockWithProtector(
+            TryBlockInterference(
                 targetPlayerIndex,
                 "ColorBall"
             )
@@ -972,9 +1594,9 @@ public class MistEffectManager : MonoBehaviour
         }
 
         Debug.Log(
-            $"[ColorBall] Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} のMistを全て " +
-            $"{newColor} に変更"
+            $"[ColorBall] " +
+            $"Player {targetPlayerIndex + 1} → " +
+            $"{newColor} に統一"
         );
     }
 
@@ -1002,12 +1624,8 @@ public class MistEffectManager : MonoBehaviour
             i++
         )
         {
-            if (
-                i == attackerPlayerIndex
-            )
-            {
+            if (i == attackerPlayerIndex)
                 continue;
-            }
 
             candidates.Add(i);
         }
@@ -1024,7 +1642,7 @@ public class MistEffectManager : MonoBehaviour
             ];
 
         if (
-            TryBlockWithProtector(
+            TryBlockInterference(
                 targetPlayerIndex,
                 "Bind"
             )
@@ -1039,86 +1657,18 @@ public class MistEffectManager : MonoBehaviour
         );
 
         Debug.Log(
-            $"[Bind] Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} にBind +2"
+            $"[Bind] " +
+            $"Player {attackerPlayerIndex + 1} → " +
+            $"Player {targetPlayerIndex + 1} / +2"
         );
     }
 
 
     // =========================================================
-    // Bind
+    // Status UI
     // =========================================================
 
-    public void AddBind(
-        int playerIndex,
-        int amount
-    )
-    {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerBindCount.Length
-        )
-        {
-            return;
-        }
-
-        if (amount <= 0)
-            return;
-
-        playerBindCount[playerIndex] +=
-            amount;
-
-        Debug.Log(
-            $"[Bind] Player {playerIndex + 1} " +
-            $"+{amount} → 合計 {playerBindCount[playerIndex]}"
-        );
-
-        RefreshBindUI();
-    }
-
-
-    public int ApplyBindToMovement(
-        int playerIndex,
-        int moveAmount
-    )
-    {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerBindCount.Length
-        )
-        {
-            return moveAmount;
-        }
-
-        if (moveAmount <= 0)
-            return moveAmount;
-
-        int consumed =
-            Mathf.Min(
-                playerBindCount[playerIndex],
-                moveAmount
-            );
-
-        playerBindCount[playerIndex] -=
-            consumed;
-
-        int remainingMove =
-            moveAmount - consumed;
-
-        Debug.Log(
-            $"[Bind] Player {playerIndex + 1} / " +
-            $"移動 {moveAmount} - Bind {consumed} " +
-            $"= 実移動 {remainingMove} / " +
-            $"残Bind {playerBindCount[playerIndex]}"
-        );
-
-        RefreshBindUI();
-
-        return remainingMove;
-    }
-
-
-    public void RefreshBindUI()
+    public void RefreshAllStatusUI()
     {
         if (gameManager == null)
             return;
@@ -1126,137 +1676,52 @@ public class MistEffectManager : MonoBehaviour
         int playerIndex =
             gameManager.GetCurrentPlayerIndex();
 
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerBindCount.Length
-        )
-        {
+        if (!IsValidPlayerIndex(playerIndex))
             return;
-        }
 
         RefreshStatusIcon(
             "BindStatus",
             bindSprite,
-            playerBindCount[playerIndex]
+            GetBindCount(playerIndex)
         );
-    }
-
-
-    // =========================================================
-    // Blue : Protector
-    // =========================================================
-
-    public void AddProtector(
-        int playerIndex,
-        int amount
-    )
-    {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerProtectorCount.Length
-        )
-        {
-            return;
-        }
-
-        if (amount <= 0)
-            return;
-
-        playerProtectorCount[playerIndex] +=
-            amount;
-
-        Debug.Log(
-            $"[Protector] Player {playerIndex + 1} " +
-            $"+{amount} → 合計 {playerProtectorCount[playerIndex]}"
-        );
-
-        RefreshProtectorUI();
-    }
-
-
-    public int GetProtectorCount(
-        int playerIndex
-    )
-    {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerProtectorCount.Length
-        )
-        {
-            return 0;
-        }
-
-        return playerProtectorCount[
-            playerIndex
-        ];
-    }
-
-
-    public void RefreshProtectorUI()
-    {
-        if (gameManager == null)
-            return;
-
-        int playerIndex =
-            gameManager.GetCurrentPlayerIndex();
-
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerProtectorCount.Length
-        )
-        {
-            return;
-        }
 
         RefreshStatusIcon(
             "ProtectorStatus",
             protectorSprite,
-            playerProtectorCount[playerIndex]
+            GetProtectorCount(playerIndex)
+        );
+
+        RefreshStatusIcon(
+            "CounterStatus",
+            counterSprite,
+            GetCounterTurns(playerIndex)
+        );
+
+        RefreshStatusIcon(
+            "MistPlusStatus",
+            mistPlusSprite,
+            GetStatusTotal(playerIndex,StatusEffectType.MistPlus)
         );
     }
 
 
-    bool TryBlockWithProtector(
-        int targetPlayerIndex,
-        string effectName
-    )
+    // 旧GameManager側から呼ばれても壊れないよう
+    // ラッパーは残しておく
+    public void RefreshBindUI()
     {
-        if (
-            targetPlayerIndex < 0 ||
-            targetPlayerIndex >= playerProtectorCount.Length
-        )
-        {
-            return false;
-        }
-
-        if (
-            playerProtectorCount[
-                targetPlayerIndex
-            ] <= 0
-        )
-        {
-            return false;
-        }
-
-        playerProtectorCount[
-            targetPlayerIndex
-        ]--;
-
-        Debug.Log(
-            $"[Protector] Player {targetPlayerIndex + 1} が " +
-            $"{effectName} を無効化 / " +
-            $"残り {playerProtectorCount[targetPlayerIndex]}"
-        );
-
-        RefreshProtectorUI();
-
-        return true;
+        RefreshAllStatusUI();
     }
 
+    public void RefreshProtectorUI()
+    {
+        RefreshAllStatusUI();
+    }
 
-    // =========================================================
-    // Status UI 共通表示
-    // =========================================================
+    public void RefreshCounterUI()
+    {
+        RefreshAllStatusUI();
+    }
+
 
     void RefreshStatusIcon(
         string statusName,
@@ -1293,7 +1758,7 @@ public class MistEffectManager : MonoBehaviour
         if (iconPrefab == null)
         {
             Debug.LogWarning(
-                "[Status UI] Icon Prefab が設定されていません"
+                "[Status UI] Icon Prefabなし"
             );
 
             return;
@@ -1302,7 +1767,7 @@ public class MistEffectManager : MonoBehaviour
         if (mainSprite == null)
         {
             Debug.LogWarning(
-                $"[Status UI] {statusName} のSpriteがありません"
+                $"[Status UI] {statusName} Spriteなし"
             );
 
             return;
@@ -1314,7 +1779,7 @@ public class MistEffectManager : MonoBehaviour
         )
         {
             Debug.LogWarning(
-                "[Status UI] 個数Spriteが設定されていません"
+                "[Status UI] Count Spriteなし"
             );
 
             return;
@@ -1364,7 +1829,8 @@ public class MistEffectManager : MonoBehaviour
         if (countTransform == null)
         {
             Debug.LogWarning(
-                $"[Status UI] {statusName} のPrefab内にCountがありません"
+                $"[Status UI] " +
+                $"{statusName} Prefab内にCountなし"
             );
 
             return;
@@ -1385,140 +1851,68 @@ public class MistEffectManager : MonoBehaviour
                 Color.white;
         }
     }
-
     // =========================================================
-    // Blue : Counter
-    // 自分にCounterを指定ターン付与
+    // Blue : MistPlus
+    // 自分に1ターンのMistPlusを付与
     // =========================================================
-    public void AddCounter(
+    public void AddMistPlus(
         int playerIndex,
         int turns
     )
     {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerCounterTurns.Length
-        )
-        {
-            return;
-        }
-
-        if (turns <= 0)
-            return;
-
-        playerCounterTurns[playerIndex] +=
-            turns;
-
-        Debug.Log(
-            $"[Counter] Player {playerIndex + 1} " +
-            $"+{turns}ターン → 残り {playerCounterTurns[playerIndex]}ターン"
+        AddStatus(
+            playerIndex,
+            StatusEffectType.MistPlus,
+            turns
         );
 
-        RefreshCounterUI();
+        Debug.Log(
+            $"[MistPlus] Player {playerIndex + 1} " +
+            $"+{turns}ターン"
+        );
     }
 
 
     // =========================================================
-    // Counter残りターン取得
+    // MistPlusが有効か
     // =========================================================
-    public int GetCounterTurns(
+    public bool HasMistPlus(
         int playerIndex
     )
     {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerCounterTurns.Length
-        )
-        {
-            return 0;
-        }
-
-        return playerCounterTurns[
-            playerIndex
-        ];
+        return
+            GetStatusTotal(
+                playerIndex,
+                StatusEffectType.MistPlus
+            ) > 0;
     }
 
 
     // =========================================================
-    // Counter UI更新
+    // ミスト増加量へMistPlusを適用
+    //
+    // 元が1 → 2
+    // 元が2 → 3
     // =========================================================
-    public void RefreshCounterUI()
-    {
-        if (gameManager == null)
-            return;
-
-        int playerIndex =
-            gameManager.GetCurrentPlayerIndex();
-
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerCounterTurns.Length
-        )
-        {
-            return;
-        }
-
-        RefreshStatusIcon(
-            "CounterStatus",
-            counterSprite,
-            playerCounterTurns[playerIndex]
-        );
-    }
-    // =========================================================
-    // Counter : 攻撃を反射
-    // defender が攻撃を無効化し、attackerへ反撃
-    // =========================================================
-    // =========================================================
-    // Counter : 攻撃を無効化して反撃
-    // =========================================================
-    public CounterResult TryCounterAttack(
-        int attackerPlayerIndex,
-        int defenderPlayerIndex
+    public int ApplyMistPlus(
+        int playerIndex,
+        int baseAmount
     )
     {
-        if (
-            defenderPlayerIndex < 0 ||
-            defenderPlayerIndex >= playerCounterTurns.Length
-        )
-        {
-            return CounterResult.None;
-        }
+        if (baseAmount <= 0)
+            return baseAmount;
 
-        // Counterなし
-        if (
-            playerCounterTurns[defenderPlayerIndex] <= 0
-        )
-        {
-            return CounterResult.None;
-        }
+        if (!HasMistPlus(playerIndex))
+            return baseAmount;
+
+        int result =
+            baseAmount + 1;
 
         Debug.Log(
-            $"[Counter] Player {defenderPlayerIndex + 1} が " +
-            $"Player {attackerPlayerIndex + 1} の攻撃を無効化"
+            $"[MistPlus] Player {playerIndex + 1} / " +
+            $"Mist増加 {baseAmount} → {result}"
         );
 
-        // =========================================
-        // 反撃先のProtector判定
-        // =========================================
-        if (
-            TryBlockWithProtector(
-                attackerPlayerIndex,
-                "Counter Attack"
-            )
-        )
-        {
-            Debug.Log(
-                $"[Counter] Player {attackerPlayerIndex + 1} の " +
-                $"Protectorによって反撃は無効化"
-            );
-
-            return CounterResult.CounterBlocked;
-        }
-
-        Debug.Log(
-            $"[Counter] Player {defenderPlayerIndex + 1} の反撃成功"
-        );
-
-        return CounterResult.CounterSuccess;
+        return result;
     }
 }
