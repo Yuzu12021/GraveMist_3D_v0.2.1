@@ -57,15 +57,8 @@ public enum StatusEffectType
 public enum AttackResult
 {
     NormalHit,
-
-    // 防御側のProtectorで通常攻撃を無効化
     BlockedByProtector,
-
-    // 防御側Counter発動 → 反撃成功
     CounterHit,
-
-    // Counter発動したが
-    // 攻撃者側Protectorで反撃を防御
     CounterBlocked
 }
 
@@ -73,11 +66,7 @@ public enum AttackResult
 // =========================================================
 // 付与状態1件
 //
-// Listへの追加順 = 付与された順番
-// value:
-// Bind      → 個数
-// Protector → 個数
-// Counter   → 残りターン
+// List内の並び順が、そのまま付与順になる
 // =========================================================
 public class StatusEffectEntry
 {
@@ -95,6 +84,17 @@ public class StatusEffectEntry
 }
 
 
+// =========================================================
+// Mist効果アイコン1件
+// =========================================================
+[System.Serializable]
+public class MistEffectSpriteData
+{
+    public MistEffectType effect;
+    public Sprite sprite;
+}
+
+
 public class MistEffectManager : MonoBehaviour
 {
     // =========================================================
@@ -107,6 +107,15 @@ public class MistEffectManager : MonoBehaviour
 
     [SerializeField]
     private BoardManager boardManager;
+
+
+    // =========================================================
+    // Mist Effect Icons
+    // =========================================================
+
+    [Header("Mist Effect Icons")]
+    [SerializeField]
+    private MistEffectSpriteData[] mistEffectSprites;
 
 
     // =========================================================
@@ -169,11 +178,12 @@ public class MistEffectManager : MonoBehaviour
     [SerializeField]
     private Sprite mistPlusSprite;
 
+
     // =========================================================
     // Status Data
     //
-    // ★ Listの並び順そのものが
-    //   「付与されたタイミングの早い順」
+    // Listの並び順 =
+    // 「付与されたタイミングが早い順」
     // =========================================================
 
     private readonly List<StatusEffectEntry>[]
@@ -187,15 +197,68 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // Mist使用入口
+    // Mist効果アイコン取得
+    // Analyzer UIから使用
+    // =========================================================
+
+    public Sprite GetMistEffectSprite(
+        MistEffectType effect
+    )
+    {
+        if (mistEffectSprites == null)
+            return null;
+
+        for (int i = 0; i < mistEffectSprites.Length; i++)
+        {
+            MistEffectSpriteData data =
+                mistEffectSprites[i];
+
+            if (data == null)
+                continue;
+
+            if (data.effect != effect)
+                continue;
+
+            if (data.sprite == null)
+            {
+                Debug.LogWarning(
+                    $"[MistEffect Icon] " +
+                    $"{effect} のSpriteが設定されていません"
+                );
+
+                return null;
+            }
+
+            return data.sprite;
+        }
+
+        Debug.LogWarning(
+            $"[MistEffect Icon] " +
+            $"効果アイコン未登録 : {effect}"
+        );
+
+        return null;
+    }
+
+
+    // =========================================================
+    // Mist効果抽選
+    //
+    // Mist取得時にGameManagerから呼ばれる
+    // 使用時には再抽選しない
     // =========================================================
 
     public MistEffectType GetRandomEffectForColor(
-    GameManager.MistColor color
-)
+        GameManager.MistColor color
+    )
     {
         return GetRandomEffect(color);
     }
+
+
+    // =========================================================
+    // 旧呼び出し互換
+    // =========================================================
 
     public MistEffectType UseMist(
         GameManager.MistColor color,
@@ -204,13 +267,6 @@ public class MistEffectManager : MonoBehaviour
     {
         MistEffectType effect =
             GetRandomEffect(color);
-
-        Debug.Log(
-            $"[MistEffect] " +
-            $"Player {playerIndex + 1} / " +
-            $"Color={color} / " +
-            $"Effect={effect}"
-        );
 
         ExecuteEffect(
             effect,
@@ -222,7 +278,7 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // 色別抽選
+    // 色別Mist効果抽選
     // =========================================================
 
     MistEffectType GetRandomEffect(
@@ -274,9 +330,6 @@ public class MistEffectManager : MonoBehaviour
                             effects.Length
                         )
                     ];
-
-                    // Counterテスト時は↑をコメントアウトして
-                    // return MistEffectType.Counter;
                 }
 
 
@@ -357,7 +410,25 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // 効果実行
+    // 保存済みMist効果を実行
+    //
+    // Analyzer対応後はこちらが正式なMist使用ルート
+    // =========================================================
+
+    public void ExecuteStoredEffect(
+        MistEffectType effect,
+        int playerIndex
+    )
+    {
+        ExecuteEffect(
+            effect,
+            playerIndex
+        );
+    }
+
+
+    // =========================================================
+    // Mist効果実行
     // =========================================================
 
     void ExecuteEffect(
@@ -423,11 +494,13 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.Analyzer:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Analyzer"
-                );
+                if (gameManager != null)
+                {
+                    gameManager.AnalyzeCurrentMists(
+                        playerIndex
+                    );
+                }
 
-                // TODO
                 break;
 
 
@@ -443,10 +516,6 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.MistPlus:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : MistPlus"
-                );
-
                 AddMistPlus(
                     playerIndex,
                     1
@@ -461,19 +530,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.MovePlus2:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : MovePlus2"
-                );
-
                 // TODO
                 break;
 
 
             case MistEffectType.FlashBadge:
-
-                Debug.Log(
-                    $"Player {playerIndex + 1} : FlashBadge"
-                );
 
                 // TODO
                 break;
@@ -481,19 +542,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.PowerCake:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : PowerCake"
-                );
-
                 // TODO
                 break;
 
 
             case MistEffectType.RespawnCoffin:
-
-                Debug.Log(
-                    $"Player {playerIndex + 1} : RespawnCoffin"
-                );
 
                 // TODO
                 break;
@@ -505,19 +558,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.UTurn:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : UTurn"
-                );
-
                 // TODO
                 break;
 
 
             case MistEffectType.TimeBomb:
-
-                Debug.Log(
-                    $"Player {playerIndex + 1} : TimeBomb"
-                );
 
                 // TODO
                 break;
@@ -525,19 +570,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.MirrorPortal:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : MirrorPortal"
-                );
-
                 // TODO
                 break;
 
 
             case MistEffectType.MagnaTornado:
-
-                Debug.Log(
-                    $"Player {playerIndex + 1} : MagnaTornado"
-                );
 
                 // TODO
                 break;
@@ -549,29 +586,17 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.RandomEffect:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : RandomEffect"
-                );
-
                 // TODO
                 break;
 
 
             case MistEffectType.Jackpot:
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Jackpot"
-                );
-
                 // TODO
                 break;
 
 
             case MistEffectType.Bug:
-
-                Debug.Log(
-                    $"Player {playerIndex + 1} : Bug"
-                );
 
                 // TODO
                 break;
@@ -606,8 +631,8 @@ public class MistEffectManager : MonoBehaviour
         if (value <= 0)
             return;
 
-        // ★ 必ず末尾へ追加
-        // これが付与順になる
+        // 末尾へ追加
+        // Listの並び順 = 付与順
         playerStatusEffects[
             playerIndex
         ].Add(
@@ -615,12 +640,6 @@ public class MistEffectManager : MonoBehaviour
                 type,
                 value
             )
-        );
-
-        Debug.Log(
-            $"[Status Add] " +
-            $"Player {playerIndex + 1} / " +
-            $"{type} / value={value}"
         );
 
         RefreshAllStatusUI();
@@ -667,12 +686,6 @@ public class MistEffectManager : MonoBehaviour
             StatusEffectType.Bind,
             amount
         );
-
-        Debug.Log(
-            $"[Bind] Player {playerIndex + 1} " +
-            $"+{amount} / " +
-            $"合計 {GetBindCount(playerIndex)}"
-        );
     }
 
 
@@ -689,9 +702,6 @@ public class MistEffectManager : MonoBehaviour
 
     // =========================================================
     // Bind：移動トリガー
-    //
-    // Bindだけが「移動」に反応するため
-    // 古いBindから順に消費
     // =========================================================
 
     public int ApplyBindToMovement(
@@ -713,9 +723,6 @@ public class MistEffectManager : MonoBehaviour
         int remainingMove =
             moveAmount;
 
-        int consumedTotal =
-            0;
-
         int i = 0;
 
         while (
@@ -726,8 +733,6 @@ public class MistEffectManager : MonoBehaviour
             StatusEffectEntry status =
                 list[i];
 
-            // 移動トリガーに
-            // Bind以外は反応しない
             if (
                 status.type !=
                 StatusEffectType.Bind
@@ -749,9 +754,6 @@ public class MistEffectManager : MonoBehaviour
             remainingMove -=
                 consumed;
 
-            consumedTotal +=
-                consumed;
-
             if (status.value <= 0)
             {
                 list.RemoveAt(i);
@@ -761,13 +763,6 @@ public class MistEffectManager : MonoBehaviour
                 i++;
             }
         }
-
-        Debug.Log(
-            $"[Bind] Player {playerIndex + 1} / " +
-            $"移動 {moveAmount} - Bind {consumedTotal} " +
-            $"= {remainingMove} / " +
-            $"残Bind {GetBindCount(playerIndex)}"
-        );
 
         RefreshAllStatusUI();
 
@@ -789,12 +784,6 @@ public class MistEffectManager : MonoBehaviour
             StatusEffectType.Protector,
             amount
         );
-
-        Debug.Log(
-            $"[Protector] Player {playerIndex + 1} " +
-            $"+{amount} / " +
-            $"合計 {GetProtectorCount(playerIndex)}"
-        );
     }
 
 
@@ -811,11 +800,6 @@ public class MistEffectManager : MonoBehaviour
 
     // =========================================================
     // Protector：妨害トリガー
-    //
-    // Shot / ColorBall / Bindなど。
-    //
-    // 付与順に確認するが、
-    // このトリガーに引っかかるのはProtectorだけ。
     // =========================================================
 
     bool TryBlockInterference(
@@ -831,17 +815,11 @@ public class MistEffectManager : MonoBehaviour
                 targetPlayerIndex
             ];
 
-        for (
-            int i = 0;
-            i < list.Count;
-            i++
-        )
+        for (int i = 0; i < list.Count; i++)
         {
             StatusEffectEntry status =
                 list[i];
 
-            // この妨害トリガーには
-            // Protectorだけが反応
             if (
                 status.type !=
                 StatusEffectType.Protector
@@ -853,12 +831,6 @@ public class MistEffectManager : MonoBehaviour
             ConsumeOneFromStatus(
                 targetPlayerIndex,
                 i
-            );
-
-            Debug.Log(
-                $"[Protector] " +
-                $"Player {targetPlayerIndex + 1} が " +
-                $"{effectName} を無効化"
             );
 
             RefreshAllStatusUI();
@@ -915,12 +887,6 @@ public class MistEffectManager : MonoBehaviour
             StatusEffectType.Counter,
             turns
         );
-
-        Debug.Log(
-            $"[Counter] Player {playerIndex + 1} " +
-            $"+{turns}ターン / " +
-            $"合計残り {GetCounterTurns(playerIndex)}"
-        );
     }
 
 
@@ -949,14 +915,8 @@ public class MistEffectManager : MonoBehaviour
     // =========================================================
     // 攻撃処理
     //
-    // ★ defenderの付与状態を
-    //   古い順から見る
-    //
-    // Protector → Counter の順で付与されていれば
-    // Protector発動
-    //
-    // Counter → Protector の順なら
-    // Counter発動
+    // 防御側の状態を付与順で参照し、
+    // 最初にトリガーへ該当した状態を発動
     // =========================================================
 
     public AttackResult ResolveAttack(
@@ -981,10 +941,6 @@ public class MistEffectManager : MonoBehaviour
                 defenderPlayerIndex
             ];
 
-        // =========================================
-        // 防御側の状態を付与順で確認
-        // =========================================
-
         for (
             int i = 0;
             i < defenderList.Count;
@@ -996,10 +952,9 @@ public class MistEffectManager : MonoBehaviour
 
             switch (status.type)
             {
-                // =================================
+                // =============================================
                 // Protector
-                // 被攻撃トリガーに一致
-                // =================================
+                // =============================================
 
                 case StatusEffectType.Protector:
 
@@ -1008,34 +963,18 @@ public class MistEffectManager : MonoBehaviour
                         i
                     );
 
-                    Debug.Log(
-                        $"[Attack] " +
-                        $"Player {defenderPlayerIndex + 1} の " +
-                        $"Protectorが先に発動 → 攻撃無効"
-                    );
-
                     RefreshAllStatusUI();
 
                     return
                         AttackResult.BlockedByProtector;
 
 
-                // =================================
+                // =============================================
                 // Counter
-                // 被攻撃トリガーに一致
-                // =================================
+                // =============================================
 
                 case StatusEffectType.Counter:
 
-                    Debug.Log(
-                        $"[Counter] " +
-                        $"Player {defenderPlayerIndex + 1} が " +
-                        $"攻撃を無効化して反撃"
-                    );
-
-                    // =================================
-                    // Counterの反撃先
-                    // =================================
                     bool counterBlocked =
                         TryBlockCounterAttack(
                             attackerPlayerIndex
@@ -1053,25 +992,19 @@ public class MistEffectManager : MonoBehaviour
                         AttackResult.CounterHit;
 
 
-                // Bindは攻撃に反応しない
+                // Bind / MistPlusなどは
+                // 被攻撃トリガーでは発動しない
                 default:
                     continue;
             }
         }
 
-        // ProtectorもCounterもなし
         return AttackResult.NormalHit;
     }
 
 
     // =========================================================
-    // Counter反撃に対する防御
-    //
-    // 現時点ではCounter→Counter→Counter...の
-    // 無限連鎖を避けるため、
-    // 「Counterによる反撃」にはProtectorだけ反応させる。
-    //
-    // ここは将来ルール確定時に変更可能。
+    // Counter反撃に対するProtector
     // =========================================================
 
     bool TryBlockCounterAttack(
@@ -1108,12 +1041,6 @@ public class MistEffectManager : MonoBehaviour
                 i
             );
 
-            Debug.Log(
-                $"[Counter] " +
-                $"Player {targetPlayerIndex + 1} の " +
-                $"Protectorが反撃を無効化"
-            );
-
             return true;
         }
 
@@ -1123,9 +1050,8 @@ public class MistEffectManager : MonoBehaviour
 
     // =========================================================
     // プレイヤーのターン終了
-    //
-    // ターンタイプの付与効果を1ターン進める
     // =========================================================
+
     public void OnPlayerTurnEnded(
         int playerIndex
     )
@@ -1133,13 +1059,11 @@ public class MistEffectManager : MonoBehaviour
         if (!IsValidPlayerIndex(playerIndex))
             return;
 
-        // Counter
         TickTurnStatus(
             playerIndex,
             StatusEffectType.Counter
         );
 
-        // MistPlus
         TickTurnStatus(
             playerIndex,
             StatusEffectType.MistPlus
@@ -1150,11 +1074,12 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // ターンタイプ状態を1ターン減らす
+    // ターン型状態を1ターン減らす
     //
-    // 同じ状態が複数回付与されている場合、
-    // 最も古く付与されたものから消化する
+    // 同種状態が複数ある場合は、
+    // 最も古いもの1件だけ減らす
     // =========================================================
+
     void TickTurnStatus(
         int playerIndex,
         StatusEffectType type
@@ -1164,7 +1089,9 @@ public class MistEffectManager : MonoBehaviour
             return;
 
         List<StatusEffectEntry> list =
-            playerStatusEffects[playerIndex];
+            playerStatusEffects[
+                playerIndex
+            ];
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -1174,35 +1101,17 @@ public class MistEffectManager : MonoBehaviour
             if (status.type != type)
                 continue;
 
-            // =========================================
-            // 一番古い同種効果を1ターン減らす
-            // =========================================
             status.value--;
 
-            Debug.Log(
-                $"[Turn Status] " +
-                $"Player {playerIndex + 1} / " +
-                $"{type} -1 → " +
-                $"{GetStatusTotal(playerIndex, type)}"
-            );
-
-            // 0になったら消滅
             if (status.value <= 0)
             {
                 list.RemoveAt(i);
-
-                Debug.Log(
-                    $"[Turn Status] " +
-                    $"Player {playerIndex + 1} / " +
-                    $"{type} が終了"
-                );
             }
 
-            // ★ 1ターンで減らすのは
-            // 最も古い同種効果1件だけ
             break;
         }
     }
+
 
     // =========================================================
     // Red : HoleTrap
@@ -1232,11 +1141,11 @@ public class MistEffectManager : MonoBehaviour
             Vector2Int grid =
                 boardManager.outerPath[i];
 
-            // 現仕様：角は除外
+            // 角は設置対象外
             if (IsCorner(grid))
                 continue;
 
-            // 既存Holeマスは除外
+            // 既存Holeは設置対象外
             if (
                 holeOwnerByPathIndex.ContainsKey(i)
             )
@@ -1248,13 +1157,7 @@ public class MistEffectManager : MonoBehaviour
         }
 
         if (candidates.Count == 0)
-        {
-            Debug.Log(
-                "[HoleTrap] 設置可能マスなし"
-            );
-
             return;
-        }
 
         int holePathIndex =
             candidates[
@@ -1271,11 +1174,6 @@ public class MistEffectManager : MonoBehaviour
         CreateHoleVisual(
             holePathIndex,
             playerIndex
-        );
-
-        Debug.Log(
-            $"[HoleTrap] Player {playerIndex + 1} " +
-            $"→ pathIndex={holePathIndex}"
         );
     }
 
@@ -1363,7 +1261,7 @@ public class MistEffectManager : MonoBehaviour
             Destroy(marker);
 
             Debug.LogWarning(
-                "[HoleTrap] PrefabにSpriteRendererなし"
+                "[HoleTrap] PrefabにSpriteRendererがありません"
             );
 
             return;
@@ -1453,13 +1351,7 @@ public class MistEffectManager : MonoBehaviour
         }
 
         if (candidates.Count == 0)
-        {
-            Debug.Log(
-                "[Shot] 破壊できるMistなし"
-            );
-
             return;
-        }
 
         int targetPlayerIndex =
             candidates[
@@ -1469,7 +1361,6 @@ public class MistEffectManager : MonoBehaviour
                 )
             ];
 
-        // Protectorは妨害トリガー
         if (
             TryBlockInterference(
                 targetPlayerIndex,
@@ -1491,22 +1382,9 @@ public class MistEffectManager : MonoBehaviour
                 mistCount
             );
 
-        GameManager.MistColor destroyedMist =
-            gameManager.GetMist(
-                targetPlayerIndex,
-                targetMistIndex
-            );
-
         gameManager.RemoveMist(
             targetPlayerIndex,
             targetMistIndex
-        );
-
-        Debug.Log(
-            $"[Shot] " +
-            $"Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} / " +
-            $"{destroyedMist}破壊"
         );
     }
 
@@ -1592,12 +1470,6 @@ public class MistEffectManager : MonoBehaviour
                 newColor
             );
         }
-
-        Debug.Log(
-            $"[ColorBall] " +
-            $"Player {targetPlayerIndex + 1} → " +
-            $"{newColor} に統一"
-        );
     }
 
 
@@ -1655,12 +1527,6 @@ public class MistEffectManager : MonoBehaviour
             targetPlayerIndex,
             2
         );
-
-        Debug.Log(
-            $"[Bind] " +
-            $"Player {attackerPlayerIndex + 1} → " +
-            $"Player {targetPlayerIndex + 1} / +2"
-        );
     }
 
 
@@ -1700,22 +1566,29 @@ public class MistEffectManager : MonoBehaviour
         RefreshStatusIcon(
             "MistPlusStatus",
             mistPlusSprite,
-            GetStatusTotal(playerIndex,StatusEffectType.MistPlus)
+            GetStatusTotal(
+                playerIndex,
+                StatusEffectType.MistPlus
+            )
         );
     }
 
 
-    // 旧GameManager側から呼ばれても壊れないよう
-    // ラッパーは残しておく
+    // =========================================================
+    // 互換ラッパー
+    // =========================================================
+
     public void RefreshBindUI()
     {
         RefreshAllStatusUI();
     }
 
+
     public void RefreshProtectorUI()
     {
         RefreshAllStatusUI();
     }
+
 
     public void RefreshCounterUI()
     {
@@ -1758,7 +1631,7 @@ public class MistEffectManager : MonoBehaviour
         if (iconPrefab == null)
         {
             Debug.LogWarning(
-                "[Status UI] Icon Prefabなし"
+                "[Status UI] Icon Prefabが設定されていません"
             );
 
             return;
@@ -1767,7 +1640,7 @@ public class MistEffectManager : MonoBehaviour
         if (mainSprite == null)
         {
             Debug.LogWarning(
-                $"[Status UI] {statusName} Spriteなし"
+                $"[Status UI] {statusName} Spriteが設定されていません"
             );
 
             return;
@@ -1779,7 +1652,7 @@ public class MistEffectManager : MonoBehaviour
         )
         {
             Debug.LogWarning(
-                "[Status UI] Count Spriteなし"
+                "[Status UI] Count Spriteが設定されていません"
             );
 
             return;
@@ -1830,7 +1703,7 @@ public class MistEffectManager : MonoBehaviour
         {
             Debug.LogWarning(
                 $"[Status UI] " +
-                $"{statusName} Prefab内にCountなし"
+                $"{statusName} Prefab内にCountがありません"
             );
 
             return;
@@ -1851,10 +1724,12 @@ public class MistEffectManager : MonoBehaviour
                 Color.white;
         }
     }
+
+
     // =========================================================
-    // Blue : MistPlus
-    // 自分に1ターンのMistPlusを付与
+    // Blue : MistPlus（アトラリング）
     // =========================================================
+
     public void AddMistPlus(
         int playerIndex,
         int turns
@@ -1865,17 +1740,9 @@ public class MistEffectManager : MonoBehaviour
             StatusEffectType.MistPlus,
             turns
         );
-
-        Debug.Log(
-            $"[MistPlus] Player {playerIndex + 1} " +
-            $"+{turns}ターン"
-        );
     }
 
 
-    // =========================================================
-    // MistPlusが有効か
-    // =========================================================
     public bool HasMistPlus(
         int playerIndex
     )
@@ -1889,11 +1756,14 @@ public class MistEffectManager : MonoBehaviour
 
 
     // =========================================================
-    // ミスト増加量へMistPlusを適用
+    // Mist増加量へMistPlusを適用
     //
-    // 元が1 → 2
-    // 元が2 → 3
+    // Mist増加イベント1回につき +1
+    // 例：
+    // 1個獲得 → 2個
+    // 2個獲得 → 3個
     // =========================================================
+
     public int ApplyMistPlus(
         int playerIndex,
         int baseAmount
@@ -1905,14 +1775,7 @@ public class MistEffectManager : MonoBehaviour
         if (!HasMistPlus(playerIndex))
             return baseAmount;
 
-        int result =
+        return
             baseAmount + 1;
-
-        Debug.Log(
-            $"[MistPlus] Player {playerIndex + 1} / " +
-            $"Mist増加 {baseAmount} → {result}"
-        );
-
-        return result;
     }
 }

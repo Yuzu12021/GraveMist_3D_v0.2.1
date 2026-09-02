@@ -8,7 +8,7 @@ using TMPro;
 [System.Serializable]
 public class EvolutionGaugeUI
 {
-    public Image gaugeImage; 
+    public Image gaugeImage;
 }
 
 [System.Serializable]
@@ -29,7 +29,7 @@ public class GameManager : MonoBehaviour
     public CanvasGroup currentPlayerPanelCanvasGroup;
     public Image currentPlayerImage;
     public EvolutionGaugeUI currentPlayerEvolutionGauge;
-    public MistSlotsUI currentPlayerMistSlots;   // ← 追加
+    public MistSlotsUI currentPlayerMistSlots;
     public Image currentPlayerBGImage;
     public Image currentPlayerNumberImage;
 
@@ -76,6 +76,10 @@ public class GameManager : MonoBehaviour
     public Transform mistIconHolder;
     public GameObject mistIconPrefab;
     public Sprite[] mistSprites;
+
+    [Header("Mist Slot Empty")]
+    [SerializeField]
+    private Sprite emptyMistSprite;
 
     [Header("Grave")]
     public GameObject gravePrefab;
@@ -164,7 +168,7 @@ public class GameManager : MonoBehaviour
     public MPSlotsUI currentPlayerMPSlots;
     public Sprite mpOnSprite;
     public Sprite mpOffSprite;
-    private int[] playerMP = new int[4]; 
+    private int[] playerMP = new int[4];
     private bool[] playerMistPlusBuff = new bool[4];
     private bool[] playerCakeBuff = new bool[4];
     private const int MAX_MP = 20;
@@ -281,7 +285,6 @@ public class GameManager : MonoBehaviour
     {
         for (int i = 0; i < GameSession.PlayerCount; i++)
         {
-            Debug.Log($"[MainScene] {i + 1}P GameSession.PlayerCharacters = {GameSession.PlayerCharacters[i]}");
         }
 
         ValidateGameSessionData();
@@ -421,65 +424,111 @@ public class GameManager : MonoBehaviour
 
         RefreshEvolutionGauge(currentPlayerEvolutionGauge, playerIndex, playerEvolutionLevels[playerIndex]);
 
-        if (playerIndex >= 0 && playerIndex < playerMists.Count)
+        if (
+    playerIndex >= 0 &&
+    playerIndex < playerMistData.Count
+)
         {
-            RefreshMistSlots(currentPlayerMistSlots, playerMists[playerIndex]);
+            RefreshMistSlots(
+                currentPlayerMistSlots,
+                playerMistData[playerIndex]
+            );
         }
 
         RefreshMPSlots(currentPlayerMPSlots, playerMP[playerIndex]);
     }
 
     void RefreshEvolutionGauge(EvolutionGaugeUI gaugeUI, int playerIndex, int level)
-{
-    if (gaugeUI == null || gaugeUI.gaugeImage == null) return;
-
-    level = Mathf.Clamp(level, 0, 3);
-
-    if (level == 0)
     {
-        gaugeUI.gaugeImage.sprite = evolutionInitialSprite;
-    }
-    else if (playerEvolutionSprites != null &&
-             playerIndex >= 0 &&
-             playerIndex < playerEvolutionSprites.Length)
-    {
-        PlayerEvolutionSprites sprites = playerEvolutionSprites[playerIndex];
+        if (gaugeUI == null || gaugeUI.gaugeImage == null) return;
 
-        switch (level)
+        level = Mathf.Clamp(level, 0, 3);
+
+        if (level == 0)
         {
-            case 1:
-                gaugeUI.gaugeImage.sprite = sprites.level1;
-                break;
-            case 2:
-                gaugeUI.gaugeImage.sprite = sprites.level2;
-                break;
-            case 3:
-                gaugeUI.gaugeImage.sprite = sprites.level3;
-                break;
+            gaugeUI.gaugeImage.sprite = evolutionInitialSprite;
         }
-    }
+        else if (playerEvolutionSprites != null &&
+                 playerIndex >= 0 &&
+                 playerIndex < playerEvolutionSprites.Length)
+        {
+            PlayerEvolutionSprites sprites = playerEvolutionSprites[playerIndex];
 
-    gaugeUI.gaugeImage.enabled = true;
-    gaugeUI.gaugeImage.color = Color.white;
-}
+            switch (level)
+            {
+                case 1:
+                    gaugeUI.gaugeImage.sprite = sprites.level1;
+                    break;
+                case 2:
+                    gaugeUI.gaugeImage.sprite = sprites.level2;
+                    break;
+                case 3:
+                    gaugeUI.gaugeImage.sprite = sprites.level3;
+                    break;
+            }
+        }
+
+        gaugeUI.gaugeImage.enabled = true;
+        gaugeUI.gaugeImage.color = Color.white;
+    }
 
     void RefreshMistSlots(
     MistSlotsUI mistUI,
-    List<MistColor> mists
+    List<MistData> mists
 )
     {
-        if (mistUI == null || mistUI.slots == null)
+        if (
+            mistUI == null ||
+            mistUI.slots == null
+        )
+        {
             return;
+        }
+
 
         for (int i = 0; i < mistUI.slots.Length; i++)
         {
-            if (mistUI.slots[i] == null)
+            Image slotImage =
+                mistUI.slots[i];
+
+            if (slotImage == null)
                 continue;
+
+
+            // =========================================
+            // Analyzer用 EffectIcon
+            // =========================================
+
+            Transform effectTransform =
+                slotImage.transform.Find(
+                    "EffectIcon"
+                );
+
+            Image effectImage = null;
+
+            if (effectTransform != null)
+            {
+                effectImage =
+                    effectTransform.GetComponent<Image>();
+            }
+
+
+            // =========================================
+            // Mistを所持している枠
+            // =========================================
 
             if (i < mists.Count)
             {
+                MistData mist =
+                    mists[i];
+
+
+                // =====================================
+                // Mist本体の色画像
+                // =====================================
+
                 int spriteIndex =
-                    (int)mists[i] - 1;
+                    (int)mist.color - 1;
 
                 if (
                     mistSprites != null &&
@@ -487,16 +536,128 @@ public class GameManager : MonoBehaviour
                     spriteIndex < mistSprites.Length
                 )
                 {
-                    mistUI.slots[i].sprite =
+                    slotImage.sprite =
                         mistSprites[spriteIndex];
 
-                    mistUI.slots[i].enabled = true;
-                    mistUI.slots[i].color = Color.white;
+                    slotImage.enabled =
+                        true;
+
+                    slotImage.color =
+                        Color.white;
+                }
+
+
+                // =====================================
+                // Analyzer表示
+                // =====================================
+
+                if (effectImage != null)
+                {
+
+                    if (mist.isAnalyzed)
+                    {
+                        Sprite effectSprite = null;
+
+                        if (mistEffectManager != null)
+                        {
+                            effectSprite =
+                                mistEffectManager.GetMistEffectSprite(
+                                    mist.effect
+                                );
+                        }
+                        else
+                        {
+                            Debug.LogWarning(
+                                $"[Analyzer UI] " +
+                                $"Slot={i} / " +
+                                $"MistEffectManager=NULL"
+                            );
+                        }
+
+
+                        if (effectSprite != null)
+                        {
+                            effectImage.sprite =
+                                effectSprite;
+
+                            effectImage.enabled =
+                                true;
+
+                            effectImage.color =
+                                new Color(
+                                    1f,
+                                    1f,
+                                    1f,
+                                    0.3f
+                                );
+
+                        }
+                        else
+                        {
+                            effectImage.enabled =
+                                false;
+
+                            Debug.LogWarning(
+                                $"[Analyzer UI] " +
+                                $"Slot={i} / " +
+                                $"SpriteがNULLなので非表示"
+                            );
+                        }
+                    }
+                    else
+                    {
+                        effectImage.enabled =
+                            false;
+
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        $"[Analyzer UI] " +
+                        $"Slot={i} / " +
+                        $"{slotImage.name} に " +
+                        $"EffectIconのImageがありません"
+                    );
                 }
             }
+
+
+            // =========================================
+            // Mistを所持していない空き枠
+            // =========================================
+
             else
             {
-                mistUI.slots[i].enabled = false;
+                // 空き枠はdot2.pngを表示
+                if (emptyMistSprite != null)
+                {
+                    slotImage.sprite =
+                        emptyMistSprite;
+
+                    slotImage.enabled =
+                        true;
+
+                    slotImage.color =
+                        Color.white;
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "[Mist UI] emptyMistSprite が未登録です"
+                    );
+
+                    slotImage.enabled =
+                        true;
+                }
+
+
+                // 空き枠なのでAnalyzerアイコンは非表示
+                if (effectImage != null)
+                {
+                    effectImage.enabled =
+                        false;
+                }
             }
         }
     }
@@ -638,12 +799,6 @@ public class GameManager : MonoBehaviour
                 );
 
 
-                Debug.Log(
-                    $"[Initial Mist] " +
-                    $"Player {i + 1} / " +
-                    $"Color={mistColor} / " +
-                    $"Effect={effect}"
-                );
             }
         }
     }
@@ -702,10 +857,6 @@ public class GameManager : MonoBehaviour
                     1
                 );
 
-                Debug.Log(
-                    $"Player {playerIndex + 1} は " +
-                    $"Mist上限のため MP +1"
-                );
 
                 continue;
             }
@@ -765,12 +916,6 @@ public class GameManager : MonoBehaviour
             );
 
 
-            Debug.Log(
-                $"[Mist Gain] " +
-                $"Player {playerIndex + 1} / " +
-                $"Color={mistColor} / " +
-                $"Effect={effect}"
-            );
         }
 
 
@@ -821,16 +966,39 @@ public class GameManager : MonoBehaviour
         return playerMists[playerIndex][mistIndex];
     }
 
-
-    // 指定プレイヤーのMistを1個削除
-    public void RemoveMist(
-        int playerIndex,
-        int mistIndex
-    )
+    public void AnalyzeCurrentMists(
+    int playerIndex
+)
     {
         if (
             playerIndex < 0 ||
-            playerIndex >= playerMists.Count
+            playerIndex >= playerMistData.Count
+        )
+        {
+            return;
+        }
+
+        List<MistData> mists =
+            playerMistData[playerIndex];
+
+        for (int i = 0; i < mists.Count; i++)
+        {
+            mists[i].isAnalyzed =
+                true;
+
+        }
+
+    }
+    // 指定プレイヤーのMistを1個削除
+    public void RemoveMist(
+    int playerIndex,
+    int mistIndex
+)
+    {
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count ||
+            playerIndex >= playerMistData.Count
         )
         {
             return;
@@ -838,25 +1006,36 @@ public class GameManager : MonoBehaviour
 
         if (
             mistIndex < 0 ||
-            mistIndex >= playerMists[playerIndex].Count
+            mistIndex >= playerMists[playerIndex].Count ||
+            mistIndex >= playerMistData[playerIndex].Count
         )
         {
             return;
         }
 
-        MistColor removedMist =
-            playerMists[playerIndex][mistIndex];
-
+        // 旧データ
         playerMists[playerIndex].RemoveAt(
             mistIndex
         );
 
-        Debug.Log(
-            $"[Mist] Player {playerIndex + 1} の " +
-            $"{removedMist} Mistを削除"
+        // 新データ
+        playerMistData[playerIndex].RemoveAt(
+            mistIndex
         );
 
+
         RefreshAllPlayerUI();
+
+        if (
+            mistPanel != null &&
+            mistPanel.activeSelf &&
+            playerIndex == currentPlayerIndex
+        )
+        {
+            RefreshMistPanelUI(
+                playerIndex
+            );
+        }
     }
 
     public void SetMistColor(
@@ -867,7 +1046,8 @@ public class GameManager : MonoBehaviour
     {
         if (
             playerIndex < 0 ||
-            playerIndex >= playerMists.Count
+            playerIndex >= playerMists.Count ||
+            playerIndex >= playerMistData.Count
         )
         {
             return;
@@ -875,16 +1055,61 @@ public class GameManager : MonoBehaviour
 
         if (
             mistIndex < 0 ||
-            mistIndex >= playerMists[playerIndex].Count
+            mistIndex >= playerMists[playerIndex].Count ||
+            mistIndex >= playerMistData[playerIndex].Count
         )
         {
             return;
         }
 
+        // =========================================
+        // 旧データの色変更
+        // =========================================
         playerMists[playerIndex][mistIndex] =
             newColor;
 
+
+        // =========================================
+        // 新データの色変更
+        // =========================================
+        playerMistData[playerIndex][mistIndex].color =
+            newColor;
+
+
+        // =========================================
+        // 色が変わったため効果も再抽選
+        // =========================================
+        if (mistEffectManager != null)
+        {
+            playerMistData[playerIndex][mistIndex].effect =
+                mistEffectManager.GetRandomEffectForColor(
+                    newColor
+                );
+        }
+
+
+        // =========================================
+        // Analyzer公開状態は解除
+        //
+        // ColorBallによって新しいMist内容になったため
+        // 未解析状態へ戻す
+        // =========================================
+        playerMistData[playerIndex][mistIndex].isAnalyzed =
+            false;
+
+
         RefreshAllPlayerUI();
+
+        if (
+            mistPanel != null &&
+            mistPanel.activeSelf &&
+            playerIndex == currentPlayerIndex
+        )
+        {
+            RefreshMistPanelUI(
+                playerIndex
+            );
+        }
     }
 
     // =========================================================
@@ -907,45 +1132,156 @@ public class GameManager : MonoBehaviour
             mistIconPrefab == null ||
             mistSprites == null
         )
+        {
             return;
+        }
 
         if (
             playerIndex < 0 ||
-            playerIndex >= playerMists.Count
+            playerIndex >= playerMistData.Count
         )
+        {
             return;
+        }
+
 
         ClearMistIcons();
 
-        List<MistColor> mists =
-            playerMists[playerIndex];
 
-        foreach (MistColor mist in mists)
+        List<MistData> mists =
+            playerMistData[playerIndex];
+
+
+        for (int i = 0; i < mists.Count; i++)
         {
+            MistData mist =
+                mists[i];
+
+
             GameObject icon =
                 Instantiate(
                     mistIconPrefab,
                     mistIconHolder
                 );
 
-            Image img =
+
+            // =========================================
+            // Mist本体
+            // =========================================
+
+            Image baseImage =
                 icon.GetComponent<Image>();
 
-            int index =
-                (int)mist - 1;
+            int colorSpriteIndex =
+                (int)mist.color - 1;
 
             if (
-                img != null &&
-                index >= 0 &&
-                index < mistSprites.Length
+                baseImage != null &&
+                colorSpriteIndex >= 0 &&
+                colorSpriteIndex < mistSprites.Length
             )
             {
-                img.sprite =
-                    mistSprites[index];
+                baseImage.sprite =
+                    mistSprites[colorSpriteIndex];
 
-                img.enabled = true;
-                img.color = Color.white;
+                baseImage.enabled =
+                    true;
+
+                baseImage.color =
+                    Color.white;
             }
+
+
+            // =========================================
+            // Analyzer用 EffectIcon
+            // =========================================
+
+            Transform effectTransform =
+                icon.transform.Find(
+                    "EffectIcon"
+                );
+
+            if (effectTransform == null)
+            {
+                Debug.LogWarning(
+                    "[Analyzer UI] " +
+                    "mistIconPrefab 内に EffectIcon がありません"
+                );
+
+                continue;
+            }
+
+
+            Image effectImage =
+                effectTransform.GetComponent<Image>();
+
+            if (effectImage == null)
+            {
+                Debug.LogWarning(
+                    "[Analyzer UI] " +
+                    "EffectIcon に Image がありません"
+                );
+
+                continue;
+            }
+
+
+            // =========================================
+            // 未解析
+            // =========================================
+
+            if (!mist.isAnalyzed)
+            {
+                effectImage.enabled =
+                    false;
+
+                continue;
+            }
+
+
+            // =========================================
+            // MistEffectManagerから
+            // 効果アイコンを取得
+            // =========================================
+
+            Sprite effectSprite = null;
+
+            if (mistEffectManager != null)
+            {
+                effectSprite =
+                    mistEffectManager.GetMistEffectSprite(
+                        mist.effect
+                    );
+            }
+
+
+            if (effectSprite == null)
+            {
+                effectImage.enabled =
+                    false;
+
+                continue;
+            }
+
+
+            // =========================================
+            // 解析済みMist
+            // =========================================
+
+            effectImage.sprite =
+                effectSprite;
+
+            effectImage.enabled =
+                true;
+
+            // 効果アイコン30%
+            effectImage.color =
+                new Color(
+                    1f,
+                    1f,
+                    1f,
+                    0.3f
+                );
         }
     }
 
@@ -969,7 +1305,6 @@ public class GameManager : MonoBehaviour
     {
         isMistZoomed = !isMistZoomed;
 
-        // ←ここ追加
         if (rightInfoLayoutGroup != null)
             rightInfoLayoutGroup.enabled = !isMistZoomed;
 
@@ -1108,7 +1443,6 @@ public class GameManager : MonoBehaviour
         if (dragController != null)
             dragController.SetDraggable(true);
 
-        Debug.Log($"▶ {currentPlayerIndex + 1}P のターン");
     }
     void ShowMistZoomBackButtonImmediate()
     {
@@ -1142,31 +1476,83 @@ public class GameManager : MonoBehaviour
 
     void UseMist(int slotIndex)
     {
-        int playerIndex = currentPlayerIndex;
+        int playerIndex =
+            currentPlayerIndex;
 
-        if (playerIndex < 0 || playerIndex >= playerMists.Count) return;
-        if (slotIndex < 0 || slotIndex >= playerMists[playerIndex].Count) return;
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMists.Count
+        )
+        {
+            return;
+        }
 
-        MistColor usedMist = playerMists[playerIndex][slotIndex];
+        if (
+            playerIndex < 0 ||
+            playerIndex >= playerMistData.Count
+        )
+        {
+            return;
+        }
 
-        Debug.Log($"Player {playerIndex + 1} used Mist: {usedMist}");
+        if (
+            slotIndex < 0 ||
+            slotIndex >= playerMists[playerIndex].Count
+        )
+        {
+            return;
+        }
 
-        ShowUsedMistUI(usedMist);
+        if (
+            slotIndex < 0 ||
+            slotIndex >= playerMistData[playerIndex].Count
+        )
+        {
+            return;
+        }
 
-        AudioManager.Instance.PlaySE("mist_break");
-        AudioManager.Instance.PlaySE("mist_power");
+
+        // =========================================
+        // 使用Mist取得
+        // =========================================
+
+        MistColor usedMistColor =
+            playerMists[playerIndex][slotIndex];
+
+        MistData usedMistData =
+            playerMistData[playerIndex][slotIndex];
+
+
+        // =========================================
+        // 使用演出
+        // =========================================
+
+        ShowUsedMistUI(
+            usedMistColor
+        );
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySE(
+                "mist_break"
+            );
+
+            AudioManager.Instance.PlaySE(
+                "mist_power"
+            );
+        }
+
+
+        // =========================================
+        // 保存済み効果を実行
+        // ★ ここでは再抽選しない
+        // =========================================
 
         if (mistEffectManager != null)
         {
-            MistEffectType selectedEffect =
-                mistEffectManager.UseMist(
-                    usedMist,
-                    playerIndex
-                );
-
-            Debug.Log(
-                $"[Mist] Player {playerIndex + 1} / " +
-                $"{usedMist} → {selectedEffect}"
+            mistEffectManager.ExecuteStoredEffect(
+                usedMistData.effect,
+                playerIndex
             );
         }
         else
@@ -1175,14 +1561,49 @@ public class GameManager : MonoBehaviour
                 "MistEffectManager が設定されていません"
             );
         }
-        // Mist削除
-        playerMists[playerIndex].RemoveAt(slotIndex);
 
+
+        // =========================================
+        // Mist削除
+        //
+        // 旧データ / 新データを
+        // 必ず同じslotIndexで削除
+        // =========================================
+
+        playerMists[playerIndex].RemoveAt(
+            slotIndex
+        );
+
+        playerMistData[playerIndex].RemoveAt(
+            slotIndex
+        );
+
+
+        // =========================================
         // UI更新
+        // =========================================
+
         RefreshCurrentPlayerPanel();
 
-        // MP加算
-        AddMP(playerIndex, 1);
+        if (
+            mistPanel != null &&
+            mistPanel.activeSelf
+        )
+        {
+            RefreshMistPanelUI(
+                playerIndex
+            );
+        }
+
+
+        // =========================================
+        // Mist使用 → MP +1
+        // =========================================
+
+        AddMP(
+            playerIndex,
+            1
+        );
     }
     void ShowUsedMistUI(MistColor mist)
     {
@@ -1226,31 +1647,27 @@ public class GameManager : MonoBehaviour
             img.color = Color.white;
         }
     }
-    
+
 
     void ActivatePlus1(int playerIndex)
     {
         if (playerMistPlusBuff[playerIndex])
         {
-            Debug.Log($"Player {playerIndex + 1} : Mist+1 はすでに有効です");
             return;
         }
 
         playerMistPlusBuff[playerIndex] = true;
-        Debug.Log($"Player {playerIndex + 1} : Mist+1 発動（このターン中のミスト獲得数+1）");
     }
 
     void ActivateCake(int playerIndex)
     {
         playerCakeBuff[playerIndex] = true;
-        Debug.Log($"Player {playerIndex + 1} : Cake 発動（このターンの移動マス2倍）");
     }
 
     void ActivateUturn(int playerIndex)
     {
         isClockwise = !isClockwise;
 
-        Debug.Log($"Player {playerIndex + 1} : UTurn発動 → {(isClockwise ? "右回り" : "左回り")}");
 
         for (int i = 0; i < players.Count; i++)
         {
@@ -1286,10 +1703,6 @@ public class GameManager : MonoBehaviour
 
         playerMP[playerIndex] += amount;
 
-        Debug.Log(
-            $"Player {playerIndex + 1} MP +{amount} " +
-            $"→ {playerMP[playerIndex]}"
-        );
 
         // =========================================
         // MP20ごとに即進化
@@ -1303,10 +1716,6 @@ public class GameManager : MonoBehaviour
             // MP消費
             playerMP[playerIndex] -= mpEvolutionCost;
 
-            Debug.Log(
-                $"[MP Evolution] Player {playerIndex + 1} : " +
-                $"{mpEvolutionCost} MP消費"
-            );
 
             // 即進化
             bool won =
@@ -1340,12 +1749,12 @@ public class GameManager : MonoBehaviour
     // Drag → 発射
     // =========================================================
 
-Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
+    Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
     {
         Ray ray = new Ray(dragWorldPos + Vector3.up * 10f, Vector3.down);
-        if(Physics.Raycast(ray,out RaycastHit hit,50f))
+        if (Physics.Raycast(ray, out RaycastHit hit, 50f))
         {
-            if(hit.collider.gameObject==boardManager.gameObject)
+            if (hit.collider.gameObject == boardManager.gameObject)
             {
                 return hit.point;
             }
@@ -1523,16 +1932,10 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         {
             if (hasAnyFallen)
             {
-                Debug.Log(
-                    $"[Toss無効] Player {currentPlayerIndex + 1}: 盤外のGraveがあります"
-                );
             }
 
             if (hasAnyOverlap)
             {
-                Debug.Log(
-                    $"[Toss無効] Player {currentPlayerIndex + 1}: Grave同士が重なっています"
-                );
             }
 
 
@@ -1670,10 +2073,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                         20
                     );
 
-                    Debug.Log(
-                        $"[Reverse] Player {currentPlayerIndex + 1} : " +
-                        $"32マス / MP +20"
-                    );
 
                     break;
             }
@@ -1685,9 +2084,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         {
             totalSteps = 8;
 
-            Debug.Log(
-                $"[All Back] Player {currentPlayerIndex + 1} : 8マス"
-            );
         }
 
         // =========================================================
@@ -1696,10 +2092,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
         if (playerCakeBuff[currentPlayerIndex])
         {
-            Debug.Log(
-                $"Player {currentPlayerIndex + 1} の Cake 発動: " +
-                $"{totalSteps} → {totalSteps * 2}"
-            );
 
             totalSteps *= 2;
         }
@@ -1709,8 +2101,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         PlayFaceDecidedSE();
 
         // ログ
-        LogTossResult();
-
         if (mistEffectManager != null)
         {
             totalSteps =
@@ -1788,11 +2178,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
                 if (isOverlapping && distance > 0.001f)
                 {
-                    Debug.Log(
-                        $"[Grave重なり] " +
-                        $"{graveA.name} × {graveB.name} " +
-                        $"侵入量: {distance:F4}"
-                    );
 
                     return true;
                 }
@@ -1801,64 +2186,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
         return false;
     }
-    void LogTossResult()
-    {
-        int frontCount = 0;
-        int backCount = 0;
-        int sideCount = 0;
-        int verticalCount = 0;
-        int reverseCount = 0;
-
-        foreach (GameObject graveObj in spawnedGraves)
-        {
-            if (graveObj == null) continue;
-
-            GraveController gc = graveObj.GetComponent<GraveController>();
-            if (gc == null) continue;
-            if (gc.IsOutOfBoard()) continue;
-
-            switch (gc.GetResult())
-            {
-                case GraveFaceResult.Front:
-                    frontCount++;
-                    break;
-
-                case GraveFaceResult.Back:
-                    backCount++;
-                    break;
-
-                case GraveFaceResult.Side:
-                    sideCount++;
-                    break;
-
-                case GraveFaceResult.Vertical:
-                    verticalCount++;
-                    break;
-
-                case GraveFaceResult.Reverse:
-                    reverseCount++;
-                    break;
-            }
-
-        }
-
-
-        int baseMistGain = sideCount + verticalCount * 2;
-        int plusBonus = playerMistPlusBuff[currentPlayerIndex]
-            ? sideCount + verticalCount
-            : 0;
-
-        Debug.Log(
-    $"[Toss結果] Player {currentPlayerIndex + 1} / " +
-    $"表:{frontCount} 裏:{backCount} 横:{sideCount} " +
-    $"縦:{verticalCount} 逆:{reverseCount} / " +
-    $"進むマス:{totalSteps} / " +
-    $"Mist増加:{baseMistGain}" +
-    (plusBonus > 0 ? $" (+Plus1で+{plusBonus} → 合計{baseMistGain + plusBonus})" : "") +
-    (playerCakeBuff[currentPlayerIndex] ? " / Cake有効" : "")
-);
-    }
-
     void PlayFaceDecidedSE()
     {
         if (totalSteps >= 11)
@@ -1935,10 +2262,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 // 自分が置いた穴なら無視
                 if (holeOwner != currentPlayerIndex)
                 {
-                    Debug.Log(
-                        $"Player {currentPlayerIndex + 1} " +
-                        $"fell into Hole at pathIndex={CurrentPathIndex}"
-                    );
 
                     mistEffectManager.RemoveHole(
                         CurrentPathIndex
@@ -2047,10 +2370,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // =========================================
         if (stoppedOnOtherPlayer)
         {
-            Debug.Log(
-                $"Player {currentPlayerIndex + 1} " +
-                $"→ Player {stoppedPlayerIndex + 1} を攻撃"
-            );
 
             AttackResult attackResult =
                 AttackResult.NormalHit;
@@ -2077,10 +2396,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                     1
                 );
 
-                Debug.Log(
-                    $"[Attack] " +
-                    $"Player {currentPlayerIndex + 1} Mist +1"
-                );
             }
 
             // =========================================
@@ -2091,10 +2406,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 AttackResult.BlockedByProtector
             )
             {
-                Debug.Log(
-                    "[Attack] Protectorにより無効 " +
-                    "→ Mist増加なし"
-                );
             }
 
             // =========================================
@@ -2110,10 +2421,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                     1
                 );
 
-                Debug.Log(
-                    $"[Counter] " +
-                    $"Player {stoppedPlayerIndex + 1} Mist +1"
-                );
             }
 
             // =========================================
@@ -2125,10 +2432,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                 AttackResult.CounterBlocked
             )
             {
-                Debug.Log(
-                    "[Counter] 反撃もProtectorで無効 " +
-                    "→ Mist増加なし"
-                );
             }
 
             // =========================================
@@ -2176,9 +2479,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
                     1
                 );
 
-                Debug.Log(
-                    $"Player {currentPlayerIndex + 1} passed Player {i + 1} → Mist +1"
-                );
             }
         }
     }
@@ -2297,10 +2597,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // =========================================
         if (playerMistPlusBuff[playerIndex])
         {
-            Debug.Log(
-                $"Player {playerIndex + 1} の " +
-                $"Mist+1 バフが終了"
-            );
 
             playerMistPlusBuff[playerIndex] =
                 false;
@@ -2311,10 +2607,6 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         // =========================================
         if (playerCakeBuff[playerIndex])
         {
-            Debug.Log(
-                $"Player {playerIndex + 1} の " +
-                $"Cake バフが終了"
-            );
 
             playerCakeBuff[playerIndex] =
                 false;
@@ -2437,17 +2729,10 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
         int newLevel =
             GetPlayerEvolutionLevel(playerIndex);
 
-        Debug.Log(
-            $"[Evolution] Player {playerIndex + 1} : " +
-            $"Level {currentLevel} → Level {newLevel}"
-        );
 
         // Level3になった瞬間に勝利
         if (newLevel >= 3)
         {
-            Debug.Log(
-                $"🏆 Player {playerIndex + 1} WIN!"
-            );
 
             GoToWinScene(playerIndex);
 
@@ -2588,5 +2873,5 @@ Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
 
         backButtonFadeCoroutine = null;
     }
-    
+
 }
