@@ -1716,6 +1716,97 @@ public class GameManager : MonoBehaviour
                 );
         }
     }
+
+    // =========================================================
+    // Yellow : MagnaTornado（マグナトルネード）
+    //
+    // 全プレイヤーを
+    // 現在位置から前後3マス以内へランダムワープ
+    // =========================================================
+    public void ActivateMagnaTornado()
+    {
+        if (
+            boardManager == null ||
+            boardManager.outerPath == null ||
+            boardManager.outerPath.Count == 0
+        )
+        {
+            return;
+        }
+
+        int pathCount =
+            boardManager.outerPath.Count;
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (
+                players[i] == null ||
+                i >= playerPathIndices.Count
+            )
+            {
+                continue;
+            }
+
+            // =========================================
+            // -3 ～ +3 からランダム
+            // 0も含む
+            // =========================================
+            int offset =
+                Random.Range(
+                    -3,
+                    4
+                );
+
+            int currentIndex =
+                playerPathIndices[i];
+
+            int targetIndex =
+                currentIndex + offset;
+
+
+            // =========================================
+            // outerPathをループさせる
+            // =========================================
+            targetIndex =
+                (targetIndex % pathCount + pathCount)
+                % pathCount;
+
+
+            // =========================================
+            // 新しいPathIndexを保存
+            // =========================================
+            playerPathIndices[i] =
+                targetIndex;
+
+
+            // =========================================
+            // ワープ先へ移動
+            // =========================================
+            Vector2Int targetGrid =
+                boardManager.outerPath[
+                    targetIndex
+                ];
+
+            Vector3 targetPosition =
+                boardManager.GridToWorld(
+                    targetGrid.x,
+                    targetGrid.y
+                );
+
+            // 現在の駒の高さを維持
+            targetPosition.y =
+                players[i].transform.position.y;
+
+            players[i].transform.position =
+                targetPosition;
+
+
+            // =========================================
+            // ワープ後の向きを更新
+            // =========================================
+            UpdatePlayerFacing(i);
+        }
+    }
     void AddMP(int playerIndex, int amount)
     {
         if (playerIndex < 0 || playerIndex >= playerMP.Length)

@@ -572,7 +572,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.MagnaTornado:
 
-                // TODO
+                if (gameManager != null)
+                {
+                    gameManager.ActivateMagnaTornado();
+                }
+
                 break;
 
 
