@@ -264,24 +264,31 @@ public class MistEffectManager : MonoBehaviour
     // =========================================================
 
     MistEffectType GetRandomEffect(
-        GameManager.MistColor color
-    )
+    GameManager.MistColor color
+)
     {
         switch (color)
         {
             // =================================================
             // Red
+            // 現在有効：
+            // HoleTrap / ColorBall
             // =================================================
 
             case GameManager.MistColor.Red:
                 {
                     MistEffectType[] effects =
                     {
-                    MistEffectType.HoleTrap,
-                    MistEffectType.Shot,
-                    MistEffectType.ColorBall,
-                    MistEffectType.Bind
-                };
+                MistEffectType.HoleTrap,
+
+                // 一旦抽選対象外
+                // MistEffectType.Shot,
+
+                MistEffectType.ColorBall,
+
+                // 一旦抽選対象外
+                // MistEffectType.Bind
+            };
 
                     return effects[
                         Random.Range(
@@ -294,17 +301,21 @@ public class MistEffectManager : MonoBehaviour
 
             // =================================================
             // Blue
+            // 現在有効：
+            // Protector / Analyzer
             // =================================================
 
             case GameManager.MistColor.Blue:
                 {
                     MistEffectType[] effects =
                     {
-                    MistEffectType.Protector,
-                    MistEffectType.Analyzer,
-                    MistEffectType.Counter,
-                    MistEffectType.MistPlus
-                };
+                MistEffectType.Protector,
+                MistEffectType.Analyzer,
+
+                // 一旦抽選対象外
+                // MistEffectType.Counter,
+                // MistEffectType.MistPlus
+            };
 
                     return effects[
                         Random.Range(
@@ -317,17 +328,24 @@ public class MistEffectManager : MonoBehaviour
 
             // =================================================
             // Green
+            // 現在有効：
+            // MovePlus2 / PowerCake
             // =================================================
 
             case GameManager.MistColor.Green:
                 {
                     MistEffectType[] effects =
                     {
-                    MistEffectType.MovePlus2,
-                    MistEffectType.FlashBadge,
-                    MistEffectType.PowerCake,
-                    MistEffectType.RespawnCoffin
-                };
+                MistEffectType.MovePlus2,
+
+                // 一旦抽選対象外
+                // MistEffectType.FlashBadge,
+
+                MistEffectType.PowerCake,
+
+                // 一旦抽選対象外
+                // MistEffectType.RespawnCoffin
+            };
 
                     return effects[
                         Random.Range(
@@ -340,17 +358,22 @@ public class MistEffectManager : MonoBehaviour
 
             // =================================================
             // Yellow
+            // 現在有効：
+            // UTurn / MagnaTornado
             // =================================================
 
             case GameManager.MistColor.Yellow:
                 {
                     MistEffectType[] effects =
                     {
-                    MistEffectType.UTurn,
-                    MistEffectType.TimeBomb,
-                    MistEffectType.MirrorPortal,
-                    MistEffectType.MagnaTornado
-                };
+                MistEffectType.UTurn,
+
+                // 一旦抽選対象外
+                // MistEffectType.TimeBomb,
+                // MistEffectType.MirrorPortal,
+
+                MistEffectType.MagnaTornado
+            };
 
                     return effects[
                         Random.Range(
@@ -363,16 +386,19 @@ public class MistEffectManager : MonoBehaviour
 
             // =================================================
             // Black
+            // 今回は黒Mist自体を排出しない
+            //
+            // 将来実装するためコードは残しておく
             // =================================================
 
             case GameManager.MistColor.Black:
                 {
                     MistEffectType[] effects =
                     {
-                    MistEffectType.RandomEffect,
-                    MistEffectType.Jackpot,
-                    MistEffectType.Bug
-                };
+                MistEffectType.RandomEffect,
+                MistEffectType.Jackpot,
+                MistEffectType.Bug
+            };
 
                     return effects[
                         Random.Range(
@@ -382,6 +408,7 @@ public class MistEffectManager : MonoBehaviour
                     ];
                 }
         }
+
 
         Debug.LogWarning(
             $"未定義MistColor: {color}"

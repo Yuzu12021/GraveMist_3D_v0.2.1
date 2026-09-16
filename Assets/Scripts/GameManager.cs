@@ -1474,6 +1474,32 @@ public class GameManager : MonoBehaviour
         UseMist(slotIndex);
     }
 
+    string GetMistColorName(
+    MistColor color
+)
+    {
+        switch (color)
+        {
+            case MistColor.Red:
+                return "赤";
+
+            case MistColor.Blue:
+                return "青";
+
+            case MistColor.Green:
+                return "緑";
+
+            case MistColor.Yellow:
+                return "黄";
+
+            case MistColor.Black:
+                return "黒";
+
+            default:
+                return "不明";
+        }
+    }
+
     void UseMist(int slotIndex)
     {
         int playerIndex =
@@ -1550,6 +1576,11 @@ public class GameManager : MonoBehaviour
 
         if (mistEffectManager != null)
         {
+            Debug.Log(
+    $"{playerIndex + 1}Pが" +
+    $"{GetMistColorName(usedMistData.color)}色のMistを使って" +
+    $"{usedMistData.effect}が発動しました。"
+);
             mistEffectManager.ExecuteStoredEffect(
                 usedMistData.effect,
                 playerIndex
@@ -1722,6 +1753,9 @@ public class GameManager : MonoBehaviour
     //
     // 全プレイヤーを
     // 現在位置から前後3マス以内へランダムワープ
+    //
+    // ・進行方向 isClockwise は変更しない
+    // ・ワープ後、見た目だけ現在の進行方向へ合わせる
     // =========================================================
     public void ActivateMagnaTornado()
     {
@@ -1737,6 +1771,7 @@ public class GameManager : MonoBehaviour
         int pathCount =
             boardManager.outerPath.Count;
 
+
         for (int i = 0; i < players.Count; i++)
         {
             if (
@@ -1747,15 +1782,14 @@ public class GameManager : MonoBehaviour
                 continue;
             }
 
+
             // =========================================
-            // -3 ～ +3 からランダム
-            // 0も含む
+            // 現在地から前後3マス以内
             // =========================================
+
             int offset =
-                Random.Range(
-                    -3,
-                    4
-                );
+                Random.Range(-3, 4);
+
 
             int currentIndex =
                 playerPathIndices[i];
@@ -1764,28 +1798,26 @@ public class GameManager : MonoBehaviour
                 currentIndex + offset;
 
 
-            // =========================================
-            // outerPathをループさせる
-            // =========================================
+            // outerPathをループ
             targetIndex =
                 (targetIndex % pathCount + pathCount)
                 % pathCount;
 
 
             // =========================================
-            // 新しいPathIndexを保存
+            // 現在地をワープ先へ更新
             // =========================================
+
             playerPathIndices[i] =
                 targetIndex;
 
 
             // =========================================
-            // ワープ先へ移動
+            // 実際の駒をワープ
             // =========================================
+
             Vector2Int targetGrid =
-                boardManager.outerPath[
-                    targetIndex
-                ];
+                boardManager.outerPath[targetIndex];
 
             Vector3 targetPosition =
                 boardManager.GridToWorld(
@@ -1793,20 +1825,26 @@ public class GameManager : MonoBehaviour
                     targetGrid.y
                 );
 
-            // 現在の駒の高さを維持
             targetPosition.y =
                 players[i].transform.position.y;
 
             players[i].transform.position =
                 targetPosition;
-
-
-            // =========================================
-            // ワープ後の向きを更新
-            // =========================================
-            UpdatePlayerFacing(i);
         }
+
+
+        // =========================================
+        // 全員のワープ完了後、
+        // 現在の進行方向に見た目を合わせる
+        //
+        // ※ isClockwise は変更しない
+        // =========================================
+
+        UpdateAllPlayerFacing();
     }
+
+
+
     void AddMP(int playerIndex, int amount)
     {
         if (playerIndex < 0 || playerIndex >= playerMP.Length)
@@ -2622,28 +2660,82 @@ public class GameManager : MonoBehaviour
     }
     void UpdatePlayerFacing(int playerIndex)
     {
-        if (playerIndex < 0 || playerIndex >= players.Count) return;
-        if (playerIndex < 0 || playerIndex >= playerPathIndices.Count) return;
-        if (players[playerIndex] == null) return;
-        if (boardManager == null || boardManager.outerPath == null || boardManager.outerPath.Count == 0) return;
+        if (
+            playerIndex < 0 ||
+            playerIndex >= players.Count ||
+            playerIndex >= playerPathIndices.Count ||
+            players[playerIndex] == null ||
+            boardManager == null ||
+            boardManager.outerPath == null ||
+            boardManager.outerPath.Count == 0
+        )
+        {
+            return;
+        }
 
-        int currentIndex = playerPathIndices[playerIndex];
 
-        int dir = isClockwise ? -1 : 1;
-        int nextIndex = (currentIndex + dir + boardManager.outerPath.Count) % boardManager.outerPath.Count;
+        int currentIndex =
+            playerPathIndices[playerIndex];
 
-        Vector2Int currentGrid = boardManager.outerPath[currentIndex];
-        Vector2Int nextGrid = boardManager.outerPath[nextIndex];
-        Vector2Int delta = nextGrid - currentGrid;
+        // 通常移動と完全に同じ進行方向
+        int dir =
+            isClockwise ? -1 : 1;
 
-        float yRot = players[playerIndex].transform.eulerAngles.y;
+        int nextIndex =
+            (currentIndex + dir + boardManager.outerPath.Count)
+            % boardManager.outerPath.Count;
 
-        if (delta.x > 0) yRot = 0f;
-        else if (delta.y > 0) yRot = -90f;
-        else if (delta.x < 0) yRot = 180f;
-        else if (delta.y < 0) yRot = 90f;
 
-        players[playerIndex].transform.rotation = Quaternion.Euler(90f, yRot, 0f);
+        Vector2Int currentGrid =
+            boardManager.outerPath[currentIndex];
+
+        Vector2Int nextGrid =
+            boardManager.outerPath[nextIndex];
+
+        Vector2Int delta =
+            nextGrid - currentGrid;
+
+
+        // =========================================
+        // Playerモデルの正面方向に合わせた回転
+        //
+        // CreatePlayers() の初期回転と
+        // 通常移動時の回転規則に合わせる
+        // =========================================
+
+        float yRot = 0f;
+
+        // 右へ進む
+        if (delta.x > 0)
+        {
+            yRot = 90f;
+        }
+
+        // 上へ進む
+        else if (delta.y > 0)
+        {
+            yRot = 0f;
+        }
+
+        // 左へ進む
+        else if (delta.x < 0)
+        {
+            yRot = -90f;
+        }
+
+        // 下へ進む
+        else if (delta.y < 0)
+        {
+            yRot = 180f;
+        }
+
+
+        players[playerIndex].transform.rotation =
+            Quaternion.Euler(
+                90f,
+                yRot,
+                0f
+            );
     }
     void UpdateAllPlayerFacing()
     {

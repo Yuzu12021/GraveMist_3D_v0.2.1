@@ -4172,10 +4172,10 @@ MonoBehaviour:
     sprite: {fileID: 21300000, guid: 2708b9bf5da96c14e8f768642979b200, type: 3}
   holeMarkerPrefab: {fileID: 8736729115478192418, guid: b7f4dc61f5c4b264787a18349605abb8, type: 3}
   holeSprites:
-  - {fileID: 21300000, guid: a4942ffacba92434e8c4094a6a9d2c69, type: 3}
-  - {fileID: 21300000, guid: 0338138017df6fa449d74eddfc42cba1, type: 3}
-  - {fileID: 21300000, guid: c1d9d7debe9848a4c8878d2a4d40fc02, type: 3}
-  - {fileID: 21300000, guid: 4d36641bf56f11f4eb2e9a256d715d02, type: 3}
+  - {fileID: 21300000, guid: 615be241af9d58748a404714da45488e, type: 3}
+  - {fileID: 21300000, guid: 2019459a5ecc953499470513fc71c04e, type: 3}
+  - {fileID: 21300000, guid: 14a0f7e40f04c4247a42beee47d012ed, type: 3}
+  - {fileID: 21300000, guid: 78f5925ec736e7a46a7b1927c6a073db, type: 3}
   currentPlayerMistHolder: {fileID: 890336589}
   statusCountSprites:
   - {fileID: 21300000, guid: d475dfc992aebae49a84a974f0635e26, type: 3}
@@ -4188,10 +4188,6 @@ MonoBehaviour:
   - {fileID: 21300000, guid: ab03eb384bb6cfc4c972dbec14210049, type: 3}
   - {fileID: 21300000, guid: 2044b895102bfa8498a8f450f042e47c, type: 3}
   - {fileID: 21300000, guid: 4ef2b50c118ac8746b52728191482647, type: 3}
-  bindSprite: {fileID: 21300000, guid: c24cb5a3a9730df4ab98062b11e5b8cc, type: 3}
-  protectorSprite: {fileID: 21300000, guid: 6d46df85b1c6e324badbbdf733abab31, type: 3}
-  counterSprite: {fileID: 21300000, guid: 08997bca6dc2acf4799450841c3e39d9, type: 3}
-  mistPlusSprite: {fileID: 21300000, guid: 6445512508ad0c8498f1c6e36fecafa8, type: 3}
 --- !u!4 &909950882
 Transform:
   m_ObjectHideFlags: 0
