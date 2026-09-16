@@ -1979,6 +1979,10 @@ public class GameManager : MonoBehaviour
         totalSteps = 0;
         int backCount = 0;
 
+        // デバッグ用：今回の墓の出目を保存
+        List<GraveFaceResult> graveResults =
+            new List<GraveFaceResult>();
+
         foreach (GameObject g in spawnedGraves)
         {
             if (g == null)
@@ -1993,8 +1997,15 @@ public class GameManager : MonoBehaviour
             if (gc == null)
                 continue;
 
+            // =============================
+            // 出目を1回だけ取得
+            // =============================
+            GraveFaceResult result =
+                gc.GetResult();
 
-            switch (gc.GetResult())
+            graveResults.Add(result);
+
+            switch (result)
             {
                 case GraveFaceResult.Front:
 
@@ -2059,6 +2070,7 @@ public class GameManager : MonoBehaviour
 
                     break;
 
+
                 case GraveFaceResult.Reverse:
 
                     if (renderer != null)
@@ -2072,7 +2084,6 @@ public class GameManager : MonoBehaviour
                         currentPlayerIndex,
                         20
                     );
-
 
                     break;
             }
@@ -2109,6 +2120,15 @@ public class GameManager : MonoBehaviour
                     totalSteps
                 );
         }
+
+        // =============================
+        // デバッグ：出目 + 最終移動数
+        // =============================
+        Debug.Log(
+            $"[GraveResult] " +
+            $"出目=[{string.Join(", ", graveResults)}] / " +
+            $"最終移動={totalSteps}マス"
+        );
         // =========================================================
         // プレイヤー移動
         // =========================================================

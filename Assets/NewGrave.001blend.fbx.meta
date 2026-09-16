@@ -1,9 +1,14 @@
 fileFormatVersion: 2
-guid: c5527d7747adf8d4bb8a6c4f0db198ee
+guid: f9df40850f7ee9542936a60ce0665405
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: Grave_NewTexture1915x1923
+    second: {fileID: 2800000, guid: 2a9d05ef8cbee374aa23d8000a691998, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0

@@ -132,6 +132,13 @@ public class GraveController : MonoBehaviour
     float absRight = Mathf.Abs(dotRight);
     float absForward = Mathf.Abs(dotForward);
 
+        Debug.Log(
+    $"[GraveJudge] " +
+    $"Up={dotUp:F2} / " +
+    $"Right={dotRight:F2} / " +
+    $"Forward={dotForward:F2}"
+);
+
         // =====================
         // 縦面（立っている）
         // =====================
