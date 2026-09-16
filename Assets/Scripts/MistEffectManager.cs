@@ -47,7 +47,9 @@ public enum StatusEffectType
     Bind,
     Protector,
     Counter,
-    MistPlus
+    MistPlus,
+    MovePlus2,
+    PowerCake
 }
 
 
@@ -157,26 +159,6 @@ public class MistEffectManager : MonoBehaviour
     [SerializeField]
     private Sprite[] statusCountSprites;
 
-
-    // =========================================================
-    // Status Sprites
-    // =========================================================
-
-    [Header("Bind")]
-    [SerializeField]
-    private Sprite bindSprite;
-
-    [Header("Protector")]
-    [SerializeField]
-    private Sprite protectorSprite;
-
-    [Header("Counter")]
-    [SerializeField]
-    private Sprite counterSprite;
-
-    [Header("Mist Plus")]
-    [SerializeField]
-    private Sprite mistPlusSprite;
 
 
     // =========================================================
@@ -530,7 +512,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.MovePlus2:
 
-                // TODO
+                AddMovePlus2(
+                    playerIndex,
+                    1
+                );
+
                 break;
 
 
@@ -542,7 +528,11 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.PowerCake:
 
-                // TODO
+                AddPowerCake(
+                    playerIndex,
+                    1
+                );
+
                 break;
 
 
@@ -558,7 +548,13 @@ public class MistEffectManager : MonoBehaviour
 
             case MistEffectType.UTurn:
 
-                // TODO
+                if (gameManager != null)
+                {
+                    gameManager.ActivateUturn(
+                        playerIndex
+                    );
+                }
+
                 break;
 
 
@@ -1065,8 +1061,18 @@ public class MistEffectManager : MonoBehaviour
         );
 
         TickTurnStatus(
+    playerIndex,
+    StatusEffectType.MistPlus
+);
+
+        TickTurnStatus(
             playerIndex,
-            StatusEffectType.MistPlus
+            StatusEffectType.MovePlus2
+        );
+
+        TickTurnStatus(
+            playerIndex,
+            StatusEffectType.PowerCake
         );
 
         RefreshAllStatusUI();
@@ -1547,32 +1553,46 @@ public class MistEffectManager : MonoBehaviour
 
         RefreshStatusIcon(
             "BindStatus",
-            bindSprite,
+            GetMistEffectSprite(MistEffectType.Bind),
             GetBindCount(playerIndex)
         );
 
         RefreshStatusIcon(
             "ProtectorStatus",
-            protectorSprite,
+            GetMistEffectSprite(MistEffectType.Protector),
             GetProtectorCount(playerIndex)
         );
 
         RefreshStatusIcon(
             "CounterStatus",
-            counterSprite,
+            GetMistEffectSprite(MistEffectType.Counter),
             GetCounterTurns(playerIndex)
         );
 
         RefreshStatusIcon(
             "MistPlusStatus",
-            mistPlusSprite,
+            GetMistEffectSprite(MistEffectType.MistPlus),
             GetStatusTotal(
                 playerIndex,
                 StatusEffectType.MistPlus
             )
         );
-    }
 
+        RefreshStatusIcon(
+            "MovePlus2Status",
+            GetMistEffectSprite(MistEffectType.MovePlus2),
+            GetStatusTotal(
+                playerIndex,
+                StatusEffectType.MovePlus2
+            )
+        );
+
+        RefreshStatusIcon(
+            "PowerCakeStatus",
+            GetMistEffectSprite(MistEffectType.PowerCake),
+            GetPowerCakeTurns(playerIndex)
+        );
+    }
 
     // =========================================================
     // 互換ラッパー
@@ -1777,5 +1797,167 @@ public class MistEffectManager : MonoBehaviour
 
         return
             baseAmount + 1;
+    }
+
+    // =========================================================
+    // Green : MovePlus2（ミニエンジン）
+    // =========================================================
+
+    public void AddMovePlus2(
+        int playerIndex,
+        int turns
+    )
+    {
+        AddStatus(
+            playerIndex,
+            StatusEffectType.MovePlus2,
+            turns
+        );
+    }
+
+
+    public bool HasMovePlus2(
+        int playerIndex
+    )
+    {
+        return
+            GetStatusTotal(
+                playerIndex,
+                StatusEffectType.MovePlus2
+            ) > 0;
+    }
+
+
+    // =========================================================
+    // MovePlus2：移動量 +2
+    // =========================================================
+
+    public int ApplyMovePlus2(
+        int playerIndex,
+        int moveAmount
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return moveAmount;
+
+        if (moveAmount <= 0)
+            return moveAmount;
+
+        if (!HasMovePlus2(playerIndex))
+            return moveAmount;
+
+        return moveAmount + 2;
+    }
+    // =========================================================
+    // Green : PowerCake（パワーケーキ）
+    // =========================================================
+
+    public void AddPowerCake(
+        int playerIndex,
+        int turns
+    )
+    {
+        AddStatus(
+            playerIndex,
+            StatusEffectType.PowerCake,
+            turns
+        );
+    }
+
+
+    public int GetPowerCakeTurns(
+        int playerIndex
+    )
+    {
+        return GetStatusTotal(
+            playerIndex,
+            StatusEffectType.PowerCake
+        );
+    }
+    // =========================================================
+    // 移動系Statusを付与順に処理
+    //
+    // Bind      = 1個につき -1
+    // MovePlus2 = +2
+    // PowerCake = ×2
+    //
+    // playerStatusEffects の先頭から処理するため
+    // そのまま「付与された順」になる
+    // =========================================================
+
+    public int ApplyMovementStatuses(
+        int playerIndex,
+        int baseMoveAmount
+    )
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+            return baseMoveAmount;
+
+        if (baseMoveAmount <= 0)
+            return baseMoveAmount;
+
+        List<StatusEffectEntry> list =
+            playerStatusEffects[playerIndex];
+
+        int moveAmount =
+            baseMoveAmount;
+
+        for (int i = 0; i < list.Count; i++)
+        {
+            StatusEffectEntry status =
+                list[i];
+
+            switch (status.type)
+            {
+                // =====================================
+                // Bind
+                // =====================================
+                case StatusEffectType.Bind:
+
+                    if (moveAmount > 0)
+                    {
+                        int consumed =
+                            Mathf.Min(
+                                status.value,
+                                moveAmount
+                            );
+
+                        moveAmount -= consumed;
+                        status.value -= consumed;
+
+                        if (status.value <= 0)
+                        {
+                            list.RemoveAt(i);
+                            i--;
+                        }
+                    }
+
+                    break;
+
+
+                // =====================================
+                // MovePlus2
+                // =====================================
+                case StatusEffectType.MovePlus2:
+
+                    moveAmount += 2;
+
+                    break;
+
+
+                // =====================================
+                // PowerCake
+                // =====================================
+                case StatusEffectType.PowerCake:
+
+                    moveAmount *= 2;
+
+                    break;
+            }
+        }
+
+        RefreshAllStatusUI();
+
+        return moveAmount;
     }
 }

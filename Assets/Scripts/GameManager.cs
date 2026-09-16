@@ -1664,7 +1664,7 @@ public class GameManager : MonoBehaviour
         playerCakeBuff[playerIndex] = true;
     }
 
-    void ActivateUturn(int playerIndex)
+    public void ActivateUturn(int playerIndex)
     {
         isClockwise = !isClockwise;
 
@@ -1672,25 +1672,48 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < players.Count; i++)
         {
             GameObject p = players[i];
-            if (p == null) continue;
-            if (i < 0 || i >= playerPathIndices.Count) continue;
 
-            Vector2Int grid = boardManager.outerPath[playerPathIndices[i]];
+            if (p == null)
+                continue;
 
-            Vector3 euler = p.transform.eulerAngles;
+            if (i < 0 || i >= playerPathIndices.Count)
+                continue;
+
+            Vector2Int grid =
+                boardManager.outerPath[
+                    playerPathIndices[i]
+                ];
+
+            Vector3 euler =
+                p.transform.eulerAngles;
 
             if (IsCorner(grid))
             {
-                float turnAngle = isClockwise ? -90f : 90f;
-                euler.y = RoundTo90(euler.y + turnAngle);
+                float turnAngle =
+                    isClockwise
+                        ? -90f
+                        : 90f;
+
+                euler.y =
+                    RoundTo90(
+                        euler.y + turnAngle
+                    );
             }
             else
             {
                 // 角以外にいる駒は180度回転
-                euler.y = RoundTo90(euler.y + 180f);
+                euler.y =
+                    RoundTo90(
+                        euler.y + 180f
+                    );
             }
 
-            p.transform.rotation = Quaternion.Euler(90f, euler.y, 0f);
+            p.transform.rotation =
+                Quaternion.Euler(
+                    90f,
+                    euler.y,
+                    0f
+                );
         }
     }
     void AddMP(int playerIndex, int amount)
@@ -2097,15 +2120,7 @@ public class GameManager : MonoBehaviour
 
         }
 
-        // =========================================================
-        // Cake
-        // =========================================================
-
-        if (playerCakeBuff[currentPlayerIndex])
-        {
-
-            totalSteps *= 2;
-        }
+        
 
 
         // 出目確定SE
@@ -2115,7 +2130,7 @@ public class GameManager : MonoBehaviour
         if (mistEffectManager != null)
         {
             totalSteps =
-                mistEffectManager.ApplyBindToMovement(
+                mistEffectManager.ApplyMovementStatuses(
                     currentPlayerIndex,
                     totalSteps
                 );
@@ -2622,15 +2637,7 @@ public class GameManager : MonoBehaviour
                 false;
         }
 
-        // =========================================
-        // 旧Cake
-        // =========================================
-        if (playerCakeBuff[playerIndex])
-        {
-
-            playerCakeBuff[playerIndex] =
-                false;
-        }
+        
 
         // =========================================
         // MistEffectManager側の
