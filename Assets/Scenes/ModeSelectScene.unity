@@ -322,7 +322,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 5f0ebb00019c6c94f94a056f9b47b9d3, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 835e241492a1fb0419e46fe0c9b8e7b4, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -458,7 +458,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2050515a648f1f140b1b950458e03cb2, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 4876e4b5d063ed848bff8e97c356ac2a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -978,6 +978,9 @@ MonoBehaviour:
   previewMaxScale: 1.08
   characterSelectVoices: []
   currentCharacter: 0
+  settingsMenuPanel: {fileID: 0}
+  playerCountPanel: {fileID: 0}
+  soundSettingsPanel: {fileID: 0}
 --- !u!4 &1157613627
 Transform:
   m_ObjectHideFlags: 0
@@ -1247,6 +1250,7 @@ MonoBehaviour:
   bgmBattleIntro: {fileID: 8300000, guid: 98e2702a6c7fc3b43a45caf7cdadb75f, type: 3}
   bgmBattleMain: {fileID: 8300000, guid: a769ef297ae53e742ba96329bec30db5, type: 3}
   seSource: {fileID: 1835356893}
+  voiceSource: {fileID: 0}
   sounds:
   - key: grave_bounce
     clip: {fileID: 8300000, guid: 5db2db3c5d97a1c47a7fab17b0fef192, type: 3}
