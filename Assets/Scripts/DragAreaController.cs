@@ -1,19 +1,6 @@
 ﻿using UnityEngine;
 
-/// <summary>
-/// このスクリプトは「ドラッグ入力」を受け取る担当。
-///
-/// 役割は大きく3つ。
-/// 1. DragArea の上でマウス / タッチが始まったか調べる
-/// 2. ドラッグ開始位置と終了位置を記録する
-/// 3. その結果を GameManager に渡す
-///
-/// ポイント:
-/// - DragArea は「入力を受けるための場所」
-/// - Board は「実際に墓を飛ばす場所」
-/// - この2つは別の位置にあるので、
-///   DragArea上の位置を Board上の位置に変換している
-/// </summary>
+
 public class DragAreaController : MonoBehaviour
 {
     [Header("References")]
@@ -38,10 +25,6 @@ public class DragAreaController : MonoBehaviour
     [Header("State")]
     private bool dragging = false;    // 今ドラッグ中かどうか
     private bool draggable = true;    // 今このターンでドラッグ可能かどうか
-
-    // ドラッグ開始した時間
-    // 速さ(speed)を出すときに使う
-    private float dragStartTime;
 
     // 「実際に墓を飛ばす開始地点」
     // DragArea上の座標を Board上の座標に変換したもの
@@ -83,16 +66,13 @@ public class DragAreaController : MonoBehaviour
     /// </summary>
     void HandleMouse()
     {
-        if (!draggable) return;
+        if (!draggable)
+            return;
 
         // マウスを押した瞬間
         if (Input.GetMouseButtonDown(0))
         {
-            // 押した場所が DragArea 上ならドラッグ開始
-            if (RaycastDragArea(Input.mousePosition))
-            {
-                StartDrag(Input.mousePosition);
-            }
+            StartDrag(Input.mousePosition);
         }
         // マウスを離した瞬間
         else if (Input.GetMouseButtonUp(0) && dragging)
@@ -100,22 +80,19 @@ public class DragAreaController : MonoBehaviour
             EndDrag(Input.mousePosition);
         }
     }
-
     /// <summary>
     /// タッチ入力版
     /// </summary>
     void HandleTouch()
     {
-        if (!draggable || Input.touchCount == 0) return;
+        if (!draggable || Input.touchCount == 0)
+            return;
 
         Touch touch = Input.GetTouch(0);
 
         if (touch.phase == TouchPhase.Began)
         {
-            if (RaycastDragArea(touch.position))
-            {
-                StartDrag(touch.position);
-            }
+            StartDrag(touch.position);
         }
         else if (touch.phase == TouchPhase.Ended && dragging)
         {
@@ -135,24 +112,20 @@ public class DragAreaController : MonoBehaviour
     void StartDrag(Vector2 screenPos)
     {
         // 1ターンで2回目以降は受け付けない
-        if (hasDragged) return;
+        if (hasDragged)
+            return;
+
+        // DragArea上でなければ開始しない
+        if (!TryGetDragAreaPoint(screenPos, out Vector3 dragAreaPoint))
+            return;
+
+        // DragArea上の座標をBoard上の座標へ変換
+        launchWorldPos =
+            ConvertDragAreaPointToBoardPoint(dragAreaPoint);
 
         dragging = true;
-        dragStartTime = Time.time;
 
-        // まずは DragArea 上のワールド座標を取る
-        if (TryGetDragAreaPoint(screenPos, out Vector3 dragAreaPoint))
-        {
-            // DragArea 上の座標を Board 上の座標に変換
-            launchWorldPos = ConvertDragAreaPointToBoardPoint(dragAreaPoint);
-
-            Debug.Log($"▶ Drag Start / {launchWorldPos}");
-        }
-        else
-        {
-            // もし取得できなかったらドラッグ開始失敗
-            dragging = false;
-        }
+        Debug.Log($"▶ Drag Start / {launchWorldPos}");
     }
 
     /// <summary>
@@ -184,7 +157,7 @@ public class DragAreaController : MonoBehaviour
         worldDelta.y = 0f; // 上下方向は無視して平面だけ見る
 
         float worldDistance = worldDelta.magnitude;
-        float dragTime = Time.time - dragStartTime;
+
 
         // あまりに短いドラッグは無効
         if (worldDistance < 0.05f)
@@ -201,8 +174,6 @@ public class DragAreaController : MonoBehaviour
         // ドラッグの長さ = 飛距離の強さ
         float distance = worldDistance;
 
-        // 一応 speed も出している
-        float speed = distance / Mathf.Max(dragTime, 0.01f);
 
         Debug.Log($"▶ Drag End / start={launchWorldPos}, end={endWorldPos}, delta={worldDelta}");
 
@@ -210,8 +181,7 @@ public class DragAreaController : MonoBehaviour
         gameManager.OnShakeRelease(
             launchWorldPos, // 発射位置
             dir2D,          // 振る方向
-            distance,       // ドラッグの長さ
-            speed           // ドラッグの速さ
+            distance      // ドラッグの長さ
         );
     }
 
@@ -275,16 +245,5 @@ public class DragAreaController : MonoBehaviour
             boardSurfaceY,
             boardTransform.position.z + boardLocalZ
         );
-    }
-
-    /// <summary>
-    /// 「今クリックしている場所が本当に DragArea 上か？」を調べる
-    /// </summary>
-    bool RaycastDragArea(Vector2 screenPos)
-    {
-        Ray ray = mainCamera.ScreenPointToRay(screenPos);
-
-        return Physics.Raycast(ray, out RaycastHit hit, 100f)
-            && hit.collider.gameObject == gameObject;
     }
 }

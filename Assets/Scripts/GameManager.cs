@@ -84,12 +84,6 @@ public class GameManager : MonoBehaviour
     [Header("Grave")]
     public GameObject gravePrefab;
     public int graveCount = 4;
-    public Material redMat;
-    public Material blueMat;
-    public Material yellowMat;
-    public Material greenMat;
-    public Material purpleMat;
-    public Material orangeMat;
 
     [Header("Grave Throw")]
     public float spawnHeight = 5f;
@@ -140,10 +134,10 @@ public class GameManager : MonoBehaviour
     private Coroutine moveCoroutine;
     private Coroutine currentPlayerPanelFadeCoroutine;
 
-    private bool hasAnyFallen = false;
-    private int stoppedCount = 0;
     private int totalSteps = 0;
-    private readonly HashSet<GraveController> stoppedGraves = new HashSet<GraveController>();
+
+    private readonly HashSet<GraveController> stoppedGraves =
+        new HashSet<GraveController>();
 
     [Header("Mist Zoom View")]
     public RectTransform mistZoomTarget;
@@ -1901,19 +1895,7 @@ public class GameManager : MonoBehaviour
     // Drag → 発射
     // =========================================================
 
-    Vector3 ConvertToBoradPosition(Vector3 dragWorldPos)
-    {
-        Ray ray = new Ray(dragWorldPos + Vector3.up * 10f, Vector3.down);
-        if (Physics.Raycast(ray, out RaycastHit hit, 50f))
-        {
-            if (hit.collider.gameObject == boardManager.gameObject)
-            {
-                return hit.point;
-            }
-        }
-        return new Vector3(dragWorldPos.x, 5f, dragWorldPos.z);
-    }
-    public void OnShakeRelease(Vector3 launchPos, Vector2 dir2D, float dragDistance, float speed)
+    public void OnShakeRelease(Vector3 launchPos, Vector2 dir2D, float dragDistance)
     {
         if (currentState != GameState.Shake) return;
         if (dir2D.sqrMagnitude < 0.0001f) return;
@@ -1923,8 +1905,15 @@ public class GameManager : MonoBehaviour
         SpawnAndLaunchGraves(launchPos, dir3D, dragDistance);
     }
 
-    void SpawnAndLaunchGraves(Vector3 launchPos, Vector3 dir, float dragDistance)
+    void SpawnAndLaunchGraves(
+    Vector3 launchPos,
+    Vector3 dir,
+    float dragDistance)
     {
+        // =========================================================
+        // 投擲SE
+        // =========================================================
+
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlaySE("grave_toss");
@@ -1934,98 +1923,265 @@ public class GameManager : MonoBehaviour
             Debug.LogWarning("AudioManager.Instance が null です");
         }
 
+
+        // =========================================================
+        // 前回のGrave / 投擲状態をリセット
+        // =========================================================
+
         ClearSpawnedGraves();
 
-        stoppedCount = 0;
         totalSteps = 0;
         stoppedGraves.Clear();
-        hasAnyFallen = false;
+
+
+        // =========================================================
+        // Prefab確認
+        // =========================================================
 
         if (gravePrefab == null)
         {
-            Debug.LogError("gravePrefab が GameManager に設定されていません！");
+            Debug.LogError(
+                "gravePrefab が GameManager に設定されていません！"
+            );
+
             return;
         }
+
+
+        // =========================================================
+        // 投擲方向
+        // =========================================================
 
         Vector3 forward = dir;
         forward.y = 0f;
 
         if (forward.sqrMagnitude < 0.0001f)
+        {
             forward = Vector3.forward;
+        }
 
         forward.Normalize();
 
-        Vector3 side = Vector3.Cross(Vector3.up, forward).normalized;
+        Vector3 side =
+            Vector3.Cross(
+                Vector3.up,
+                forward
+            ).normalized;
 
-        float power = Mathf.Clamp(dragDistance, 0.5f, 10f);
+
+        // =========================================================
+        // ドラッグ距離 → 基本投擲パワー
+        // =========================================================
+
+        float power =
+            Mathf.Clamp(
+                dragDistance,
+                0.5f,
+                10f
+            );
+
+
+        // =========================================================
+        // Grave生成
+        // =========================================================
 
         for (int i = 0; i < graveCount; i++)
         {
-            float ratio = GetArrayValueOrDefault(distanceRatios, i, 1f);
-            float sideOffset = GetArrayValueOrDefault(sideOffsets, i, 0f);
+            // -----------------------------------------------------
+            // Graveごとの基本設定
+            // -----------------------------------------------------
 
-            float randomSpawnSide = Random.Range(-randomSpawnSideRange, randomSpawnSideRange);
+            float ratio =
+                GetArrayValueOrDefault(
+                    distanceRatios,
+                    i,
+                    1f
+                );
+
+            float sideOffset =
+                GetArrayValueOrDefault(
+                    sideOffsets,
+                    i,
+                    0f
+                );
+
+
+            // -----------------------------------------------------
+            // 生成位置
+            // -----------------------------------------------------
+
+            float randomSpawnSide =
+                Random.Range(
+                    -randomSpawnSideRange,
+                    randomSpawnSideRange
+                );
 
             Vector3 spawnPos =
                 launchPos
-                + side * (sideOffset * spawnSpreadMultiplier + randomSpawnSide)
+                + side * (
+                    sideOffset * spawnSpreadMultiplier
+                    + randomSpawnSide
+                )
                 + Vector3.up * spawnHeight;
 
-            GameObject grave = Instantiate(gravePrefab, spawnPos, Quaternion.identity);
 
-            Rigidbody rb = grave.GetComponent<Rigidbody>();
+            // -----------------------------------------------------
+            // Grave生成
+            // -----------------------------------------------------
+
+            GameObject grave =
+                Instantiate(
+                    gravePrefab,
+                    spawnPos,
+                    Quaternion.identity
+                );
+
+
+            // -----------------------------------------------------
+            // 必須Component取得
+            // -----------------------------------------------------
+
+            Rigidbody rb =
+                grave.GetComponent<Rigidbody>();
+
             if (rb == null)
             {
-                Debug.LogError("生成された grave に Rigidbody がありません！");
+                Debug.LogError(
+                    "生成された grave に Rigidbody がありません！"
+                );
+
                 return;
             }
 
-            GraveController gc = grave.GetComponent<GraveController>();
+            GraveController gc =
+                grave.GetComponent<GraveController>();
+
             if (gc == null)
             {
-                Debug.LogError("生成された grave に GraveController がありません！");
+                Debug.LogError(
+                    "生成された grave に GraveController がありません！"
+                );
+
                 return;
             }
 
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
 
-            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-            rb.interpolation = RigidbodyInterpolation.Interpolate;
-            rb.linearDamping = 1.0f;
-            rb.angularDamping = 3.5f;
+            // -----------------------------------------------------
+            // Rigidbody初期化
+            // -----------------------------------------------------
+
+            rb.linearVelocity =
+                Vector3.zero;
+
+            rb.angularVelocity =
+                Vector3.zero;
+
+            rb.collisionDetectionMode =
+                CollisionDetectionMode.ContinuousDynamic;
+
+            rb.interpolation =
+                RigidbodyInterpolation.Interpolate;
+
+            rb.linearDamping =
+                1.0f;
+
+            rb.angularDamping =
+                3.5f;
+
+
+            // -----------------------------------------------------
+            // 初期姿勢
+            // -----------------------------------------------------
 
             rb.rotation =
-                Quaternion.LookRotation(forward, Vector3.up) *
+                Quaternion.LookRotation(
+                    forward,
+                    Vector3.up
+                )
+                *
                 Quaternion.Euler(
                     -25f,
                     Random.Range(-8f, 8f),
                     Random.Range(-8f, 8f)
                 );
 
-            gc.OnStopped -= OnGraveStopped;
-            gc.OnStopped += OnGraveStopped;
 
-            float forwardVariance = Random.Range(forwardVarianceMin, forwardVarianceMax);
-            float force = baseForce * ratio * power * forwardVariance;
-            float randomSide = Random.Range(-randomSideForceRange, randomSideForceRange);
+            // -----------------------------------------------------
+            // 停止イベント登録
+            // -----------------------------------------------------
+
+            gc.OnStopped -=
+                OnGraveStopped;
+
+            gc.OnStopped +=
+                OnGraveStopped;
+
+
+            // -----------------------------------------------------
+            // 発射力
+            // -----------------------------------------------------
+
+            float forwardVariance =
+                Random.Range(
+                    forwardVarianceMin,
+                    forwardVarianceMax
+                );
+
+            float force =
+                baseForce
+                * ratio
+                * power
+                * forwardVariance;
+
+            float randomSide =
+                Random.Range(
+                    -randomSideForceRange,
+                    randomSideForceRange
+                );
 
             Vector3 finalForce =
-                forward * (force + Random.Range(-forceJitter, forceJitter))
-                + side * (sideOffset * sideForceMultiplier + randomSide)
+                forward * (
+                    force
+                    + Random.Range(
+                        -forceJitter,
+                        forceJitter
+                    )
+                )
+                + side * (
+                    sideOffset * sideForceMultiplier
+                    + randomSide
+                )
                 + Vector3.down * downwardForce;
 
-            rb.AddForce(finalForce, ForceMode.Impulse);
+            rb.AddForce(
+                finalForce,
+                ForceMode.Impulse
+            );
+
+
+            // -----------------------------------------------------
+            // 回転力
+            // -----------------------------------------------------
 
             Vector3 torque =
-                side * forwardFlipTorque +
+                side * forwardFlipTorque
+                +
                 new Vector3(
                     Random.Range(-1f, 1f),
                     Random.Range(-0.3f, 0.3f),
                     Random.Range(-1f, 1f)
-                ) * torquePower;
+                )
+                * torquePower;
 
-            rb.AddTorque(torque, ForceMode.Impulse);
+            rb.AddTorque(
+                torque,
+                ForceMode.Impulse
+            );
+
+
+            // -----------------------------------------------------
+            // 管理対象へ追加
+            // -----------------------------------------------------
 
             spawnedGraves.Add(grave);
         }
@@ -2036,15 +2192,16 @@ public class GameManager : MonoBehaviour
     // =========================================================
     void OnGraveStopped(GraveController grave)
     {
-        // 同じGraveから複数回停止通知が来ても1回だけ処理
-        if (stoppedGraves.Contains(grave))
+        // =========================================================
+        // 同じGraveからの停止通知は1回だけ受け付ける
+        // =========================================================
+        if (!stoppedGraves.Add(grave))
             return;
 
-        stoppedGraves.Add(grave);
-        stoppedCount++;
-
+        // =========================================================
         // 全Graveが停止するまで待つ
-        if (stoppedCount < graveCount)
+        // =========================================================
+        if (stoppedGraves.Count < graveCount)
             return;
 
 
@@ -2053,7 +2210,7 @@ public class GameManager : MonoBehaviour
         // =========================================================
 
         // ① 1個でも盤外なら無効
-        hasAnyFallen = false;
+        bool hasAnyFallen = false;
 
         foreach (GameObject g in spawnedGraves)
         {
@@ -2079,42 +2236,14 @@ public class GameManager : MonoBehaviour
         // =========================================================
         // 無効投擲
         // =========================================================
-
         if (hasAnyFallen || hasAnyOverlap)
         {
-            if (hasAnyFallen)
-            {
-            }
-
-            if (hasAnyOverlap)
-            {
-            }
-
-
             if (AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlaySE(
                     "grave_miss"
                 );
             }
-
-
-            // 全Graveを失敗色にする
-            foreach (GameObject g in spawnedGraves)
-            {
-                if (g == null)
-                    continue;
-
-                Renderer renderer =
-                    g.GetComponent<Renderer>();
-
-                if (renderer != null)
-                {
-                    renderer.material =
-                        orangeMat;
-                }
-            }
-
 
             // 出目・Mistは一切取得せず次のターンへ
             NextTurn();
@@ -2124,16 +2253,16 @@ public class GameManager : MonoBehaviour
 
 
         // =========================================================
-        // ここまで来たら有効な投擲
-        // この段階で初めて出目とMistを計算する
+        // 有効な投擲
         // =========================================================
 
         totalSteps = 0;
         int backCount = 0;
 
-        // デバッグ用：今回の墓の出目を保存
+        // デバッグ用：今回の墓の出目
         List<GraveFaceResult> graveResults =
             new List<GraveFaceResult>();
+
 
         foreach (GameObject g in spawnedGraves)
         {
@@ -2143,26 +2272,23 @@ public class GameManager : MonoBehaviour
             GraveController gc =
                 g.GetComponent<GraveController>();
 
-            Renderer renderer =
-                g.GetComponent<Renderer>();
-
             if (gc == null)
                 continue;
 
-            // =============================
-            // 出目を1回だけ取得
-            // =============================
+
+            // =====================================================
+            // 出目判定
+            // =====================================================
+
             GraveFaceResult result =
                 gc.GetResult();
 
             graveResults.Add(result);
 
+
             switch (result)
             {
                 case GraveFaceResult.Front:
-
-                    if (renderer != null)
-                        renderer.material = redMat;
 
                     totalSteps += 1;
 
@@ -2171,9 +2297,6 @@ public class GameManager : MonoBehaviour
 
                 case GraveFaceResult.Back:
 
-                    if (renderer != null)
-                        renderer.material = blueMat;
-
                     backCount++;
 
                     break;
@@ -2181,18 +2304,13 @@ public class GameManager : MonoBehaviour
 
                 case GraveFaceResult.Side:
 
-                    if (renderer != null)
-                        renderer.material = yellowMat;
-
                     totalSteps += 5;
 
-                    // Mist +1
                     GiveMist(
                         currentPlayerIndex,
                         1
                     );
 
-                    // MP +1
                     AddMP(
                         currentPlayerIndex,
                         1
@@ -2203,18 +2321,13 @@ public class GameManager : MonoBehaviour
 
                 case GraveFaceResult.Vertical:
 
-                    if (renderer != null)
-                        renderer.material = greenMat;
-
                     totalSteps += 10;
 
-                    // Mist +2
                     GiveMist(
                         currentPlayerIndex,
                         2
                     );
 
-                    // MP +2
                     AddMP(
                         currentPlayerIndex,
                         2
@@ -2225,13 +2338,8 @@ public class GameManager : MonoBehaviour
 
                 case GraveFaceResult.Reverse:
 
-                    if (renderer != null)
-                        renderer.material = purpleMat;
-
                     totalSteps += 32;
 
-                    // 逆立ちはMistなし
-                    // MP +20
                     AddMP(
                         currentPlayerIndex,
                         20
@@ -2240,22 +2348,29 @@ public class GameManager : MonoBehaviour
                     break;
             }
         }
+
+
         // =========================================================
         // 全て裏なら特殊ルールで8マス
         // =========================================================
+
         if (backCount == spawnedGraves.Count)
         {
             totalSteps = 8;
-
         }
 
-        
 
-
+        // =========================================================
         // 出目確定SE
+        // =========================================================
+
         PlayFaceDecidedSE();
 
-        // ログ
+
+        // =========================================================
+        // Mistによる移動補正
+        // =========================================================
+
         if (mistEffectManager != null)
         {
             totalSteps =
@@ -2265,14 +2380,18 @@ public class GameManager : MonoBehaviour
                 );
         }
 
-        // =============================
-        // デバッグ：出目 + 最終移動数
-        // =============================
+
+        // =========================================================
+        // デバッグ
+        // =========================================================
+
         Debug.Log(
             $"[GraveResult] " +
             $"出目=[{string.Join(", ", graveResults)}] / " +
             $"最終移動={totalSteps}マス"
         );
+
+
         // =========================================================
         // プレイヤー移動
         // =========================================================
