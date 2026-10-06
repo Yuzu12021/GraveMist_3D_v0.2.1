@@ -146,15 +146,15 @@ RectTransform:
   m_GameObject: {fileID: 431559171}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.39, y: 0.39, z: 0.39}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1064816954}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 700, y: 129.15}
+  m_SizeDelta: {x: 3838.4097, y: 1207}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &431559173
 MonoBehaviour:
@@ -176,7 +176,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 0f9065ca79c6d2040ac6e8637e12d790, type: 3}
+  m_Sprite: {fileID: 21300000, guid: b76101bbb58f92341b6db48c4c440c2f, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -185,7 +185,7 @@ MonoBehaviour:
   m_FillClockwise: 1
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
+  m_PixelsPerUnitMultiplier: 0.2
 --- !u!222 &431559174
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -755,6 +755,7 @@ MonoBehaviour:
   bgmBattleIntro: {fileID: 8300000, guid: 98e2702a6c7fc3b43a45caf7cdadb75f, type: 3}
   bgmBattleMain: {fileID: 8300000, guid: a769ef297ae53e742ba96329bec30db5, type: 3}
   seSource: {fileID: 843598426}
+  voiceSource: {fileID: 0}
   sounds:
   - key: grave_bounce
     clip: {fileID: 8300000, guid: 5db2db3c5d97a1c47a7fab17b0fef192, type: 3}
@@ -1183,6 +1184,9 @@ MonoBehaviour:
   previewMaxScale: 1.08
   characterSelectVoices: []
   currentCharacter: 0
+  settingsMenuPanel: {fileID: 0}
+  playerCountPanel: {fileID: 0}
+  soundSettingsPanel: {fileID: 0}
 --- !u!4 &1975835432
 Transform:
   m_ObjectHideFlags: 0
