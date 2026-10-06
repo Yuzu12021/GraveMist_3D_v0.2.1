@@ -12,15 +12,15 @@ public class EvolutionGaugeUI
 }
 
 [System.Serializable]
+public class MPGaugeUI
+{
+    public RectTransform fillMask;
+    public TMP_Text valueText;
+}
+[System.Serializable]
 public class MistSlotsUI
 {
-    public Image[] slots; // MistSlot_1 ～ MistSlot_7
-}
-
-[System.Serializable]
-public class MPSlotsUI
-{
-    public Image[] slots; // MpSlot_1 ～ MpSlot_30
+    public Image[] slots;
 }
 public class GameManager : MonoBehaviour
 {
@@ -29,7 +29,6 @@ public class GameManager : MonoBehaviour
     public CanvasGroup currentPlayerPanelCanvasGroup;
     public Image currentPlayerImage;
     public EvolutionGaugeUI currentPlayerEvolutionGauge;
-    public MistSlotsUI currentPlayerMistSlots;
     public Image currentPlayerBGImage;
     public Image currentPlayerNumberImage;
 
@@ -80,6 +79,9 @@ public class GameManager : MonoBehaviour
     [Header("Mist Slot Empty")]
     [SerializeField]
     private Sprite emptyMistSprite;
+
+    [Header("Current Player Mist Slots")]
+    public MistSlotsUI currentPlayerMistSlots;
 
     [Header("Grave")]
     public GameObject gravePrefab;
@@ -159,13 +161,12 @@ public class GameManager : MonoBehaviour
     private int mistSlotsNormalSiblingIndex;
 
     [Header("MP UI")]
-    public MPSlotsUI currentPlayerMPSlots;
-    public Sprite mpOnSprite;
-    public Sprite mpOffSprite;
+    public MPGaugeUI currentPlayerMPGauge;
     private int[] playerMP = new int[4];
     private bool[] playerMistPlusBuff = new bool[4];
     private bool[] playerCakeBuff = new bool[4];
     private const int MAX_MP = 20;
+    private const float MP_GAUGE_MAX_WIDTH = 350f;
 
 
     [Header("Used Mist UI")]
@@ -277,9 +278,6 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
-        for (int i = 0; i < GameSession.PlayerCount; i++)
-        {
-        }
 
         ValidateGameSessionData();
         InitializePlayerUI();
@@ -385,16 +383,19 @@ public class GameManager : MonoBehaviour
 
     void RefreshCurrentPlayerPanel()
     {
-        if (players.Count == 0) return;
+        if (players.Count == 0)
+            return;
 
         int playerIndex = currentPlayerIndex;
         int charIndex = GameSession.PlayerCharacters[playerIndex];
 
+        // キャラクター画像
         if (currentPlayerImage != null &&
             charIndex >= 0 &&
             charIndex < characterLargeSprites.Length)
         {
-            currentPlayerImage.sprite = characterLargeSprites[charIndex];
+            currentPlayerImage.sprite =
+                characterLargeSprites[charIndex];
         }
 
         // 背景画像
@@ -403,25 +404,30 @@ public class GameManager : MonoBehaviour
             playerIndex >= 0 &&
             playerIndex < currentPlayerBGSprites.Length)
         {
-            currentPlayerBGImage.sprite = currentPlayerBGSprites[playerIndex];
+            currentPlayerBGImage.sprite =
+                currentPlayerBGSprites[playerIndex];
         }
 
-
-        // 1P / 2P / 3P / 4P（Current専用）
+        // 1P / 2P / 3P / 4P
         if (currentPlayerNumberImage != null &&
             currentPlayerNumberSprites != null &&
             playerIndex >= 0 &&
             playerIndex < currentPlayerNumberSprites.Length)
         {
-            currentPlayerNumberImage.sprite = currentPlayerNumberSprites[playerIndex];
+            currentPlayerNumberImage.sprite =
+                currentPlayerNumberSprites[playerIndex];
         }
 
-        RefreshEvolutionGauge(currentPlayerEvolutionGauge, playerIndex, playerEvolutionLevels[playerIndex]);
+        // 進化ゲージ
+        RefreshEvolutionGauge(
+            currentPlayerEvolutionGauge,
+            playerIndex,
+            playerEvolutionLevels[playerIndex]
+        );
 
-        if (
-    playerIndex >= 0 &&
-    playerIndex < playerMistData.Count
-)
+        // Mist
+        if (playerIndex >= 0 &&
+            playerIndex < playerMistData.Count)
         {
             RefreshMistSlots(
                 currentPlayerMistSlots,
@@ -429,7 +435,11 @@ public class GameManager : MonoBehaviour
             );
         }
 
-        RefreshMPSlots(currentPlayerMPSlots, playerMP[playerIndex]);
+        // MPゲージ
+        RefreshMPGauge(
+            currentPlayerMPGauge,
+            playerMP[playerIndex]
+        );
     }
 
     void RefreshEvolutionGauge(EvolutionGaugeUI gaugeUI, int playerIndex, int level)
@@ -1332,15 +1342,14 @@ public class GameManager : MonoBehaviour
             dimOverlayCanvasGroup.gameObject.SetActive(true);
         }
 
-        // 拡大前の通常位置を毎回保存
-        if (!zoomIn)
+        // 拡大前の通常位置を保存
+        if (zoomIn)
         {
-            // 戻す時は保存済みを使う
-        }
-        else
-        {
-            mistSlotsNormalAnchoredPosition = mistZoomTarget.anchoredPosition;
-            mistSlotsNormalSiblingIndex = mistZoomTarget.GetSiblingIndex();
+            mistSlotsNormalAnchoredPosition =
+                mistZoomTarget.anchoredPosition;
+
+            mistSlotsNormalSiblingIndex =
+                mistZoomTarget.GetSiblingIndex();
         }
 
         // 前面へ
@@ -1874,21 +1883,44 @@ public class GameManager : MonoBehaviour
 
         RefreshAllPlayerUI();
     }
-    void RefreshMPSlots(MPSlotsUI mpUI, int mpValue)
+    void RefreshMPGauge(
+    MPGaugeUI gaugeUI,
+    int mpValue
+)
     {
-        if (mpUI == null || mpUI.slots == null) return;
+        if (gaugeUI == null)
+            return;
 
-        mpValue = Mathf.Clamp(mpValue, 0, MAX_MP);
+        mpValue =
+            Mathf.Clamp(
+                mpValue,
+                0,
+                MAX_MP
+            );
 
-        for (int i = 0; i < mpUI.slots.Length; i++)
+        // ================================
+        // ゲージ幅
+        // ================================
+
+        if (gaugeUI.fillMask != null)
         {
-            if (mpUI.slots[i] == null) continue;
+            float ratio =
+                (float)mpValue / MAX_MP;
 
-            bool isOn = i < mpValue;
+            gaugeUI.fillMask.SetSizeWithCurrentAnchors(
+                RectTransform.Axis.Horizontal,
+                MP_GAUGE_MAX_WIDTH * ratio
+            );
+        }
 
-            mpUI.slots[i].enabled = true;
-            mpUI.slots[i].sprite = isOn ? mpOnSprite : mpOffSprite;
-            mpUI.slots[i].color = Color.white;
+        // ================================
+        // 現在MP表示
+        // ================================
+
+        if (gaugeUI.valueText != null)
+        {
+            gaugeUI.valueText.text =
+                mpValue.ToString();
         }
     }
     // =========================================================
@@ -2192,26 +2224,51 @@ public class GameManager : MonoBehaviour
     // =========================================================
     void OnGraveStopped(GraveController grave)
     {
-        // =========================================================
         // 同じGraveからの停止通知は1回だけ受け付ける
-        // =========================================================
         if (!stoppedGraves.Add(grave))
             return;
 
-        // =========================================================
         // 全Graveが停止するまで待つ
-        // =========================================================
         if (stoppedGraves.Count < graveCount)
             return;
 
+        // 投擲が無効なら次のターンへ
+        if (IsInvalidGraveThrow())
+        {
+            HandleInvalidGraveThrow();
+            return;
+        }
 
-        // =========================================================
-        // 全Grave停止後に投擲の有効 / 無効を判定
-        // =========================================================
+        // 出目を集計
+        List<GraveFaceResult> graveResults =
+            CalculateGraveResults();
 
-        // ① 1個でも盤外なら無効
-        bool hasAnyFallen = false;
+        // 出目確定SE
+        PlayFaceDecidedSE();
 
+        // Mistによる移動補正
+        if (mistEffectManager != null)
+        {
+            totalSteps =
+                mistEffectManager.ApplyMovementStatuses(
+                    currentPlayerIndex,
+                    totalSteps
+                );
+        }
+
+        // デバッグ
+        Debug.Log(
+            $"[GraveResult] " +
+            $"出目=[{string.Join(", ", graveResults)}] / " +
+            $"最終移動={totalSteps}マス"
+        );
+
+        // プレイヤー移動
+        StartPlayerMovement();
+    }
+    bool IsInvalidGraveThrow()
+    {
+        // 1個でも盤外なら無効
         foreach (GameObject g in spawnedGraves)
         {
             if (g == null)
@@ -2222,47 +2279,32 @@ public class GameManager : MonoBehaviour
 
             if (gc != null && gc.IsOutOfBoard())
             {
-                hasAnyFallen = true;
-                break;
+                return true;
             }
         }
 
-
-        // ② 1組でもGrave同士が重なっていたら無効
-        bool hasAnyOverlap =
-            HasAnyGraveOverlap();
-
-
-        // =========================================================
-        // 無効投擲
-        // =========================================================
-        if (hasAnyFallen || hasAnyOverlap)
+        // 1組でもGrave同士が重なっていたら無効
+        return HasAnyGraveOverlap();
+    }
+    void HandleInvalidGraveThrow()
+    {
+        if (AudioManager.Instance != null)
         {
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.PlaySE(
-                    "grave_miss"
-                );
-            }
-
-            // 出目・Mistは一切取得せず次のターンへ
-            NextTurn();
-
-            return;
+            AudioManager.Instance.PlaySE(
+                "grave_miss"
+            );
         }
 
-
-        // =========================================================
-        // 有効な投擲
-        // =========================================================
-
+        // 出目・Mistは取得せず次のターンへ
+        NextTurn();
+    }
+    List<GraveFaceResult> CalculateGraveResults()
+    {
         totalSteps = 0;
         int backCount = 0;
 
-        // デバッグ用：今回の墓の出目
         List<GraveFaceResult> graveResults =
             new List<GraveFaceResult>();
-
 
         foreach (GameObject g in spawnedGraves)
         {
@@ -2275,30 +2317,22 @@ public class GameManager : MonoBehaviour
             if (gc == null)
                 continue;
 
-
-            // =====================================================
-            // 出目判定
-            // =====================================================
-
             GraveFaceResult result =
                 gc.GetResult();
 
             graveResults.Add(result);
-
 
             switch (result)
             {
                 case GraveFaceResult.Front:
 
                     totalSteps += 1;
-
                     break;
 
 
                 case GraveFaceResult.Back:
 
                     backCount++;
-
                     break;
 
 
@@ -2349,53 +2383,17 @@ public class GameManager : MonoBehaviour
             }
         }
 
-
-        // =========================================================
         // 全て裏なら特殊ルールで8マス
-        // =========================================================
-
-        if (backCount == spawnedGraves.Count)
+        if (graveResults.Count > 0 &&
+    backCount == graveResults.Count)
         {
             totalSteps = 8;
         }
 
-
-        // =========================================================
-        // 出目確定SE
-        // =========================================================
-
-        PlayFaceDecidedSE();
-
-
-        // =========================================================
-        // Mistによる移動補正
-        // =========================================================
-
-        if (mistEffectManager != null)
-        {
-            totalSteps =
-                mistEffectManager.ApplyMovementStatuses(
-                    currentPlayerIndex,
-                    totalSteps
-                );
-        }
-
-
-        // =========================================================
-        // デバッグ
-        // =========================================================
-
-        Debug.Log(
-            $"[GraveResult] " +
-            $"出目=[{string.Join(", ", graveResults)}] / " +
-            $"最終移動={totalSteps}マス"
-        );
-
-
-        // =========================================================
-        // プレイヤー移動
-        // =========================================================
-
+        return graveResults;
+    }
+    void StartPlayerMovement()
+    {
         if (moveCoroutine != null)
         {
             StopCoroutine(
