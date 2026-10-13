@@ -41,7 +41,6 @@ public class GameManager : MonoBehaviour
 
     [Header("Top Player Bar")]
     public GameObject[] topPlayerRoots;         // PlayerInfo_1 ～ 4
-    public GameObject[] topPlayerHighlights;    // Highlight
     public Image[] topPlayerNumberImages;       // PlayerNumber
     public Image[] topPlayerIcons;              // Icon
     public EvolutionGaugeUI[] topPlayerEvolutionGauges;
@@ -117,6 +116,17 @@ public class GameManager : MonoBehaviour
     private readonly List<int> playerStartPathIndices = new List<int>();
     private readonly List<List<MistColor>> playerMists = new List<List<MistColor>>();
 
+    [Header("New Mist Effect Lottery")]
+    [SerializeField]
+    private List<MistEffectDefinition> mistEffectDefinitions =
+    new List<MistEffectDefinition>();
+
+    [SerializeField]
+    private string evolutionEffectId = "Evolution";
+
+    private readonly List<MistEffectDefinition> selectedMistEffects =
+        new List<MistEffectDefinition>();
+
     // =========================================================
     // 新Mistデータ
     // 色 + 効果 + Analyzer公開状態を保持
@@ -128,6 +138,18 @@ public class GameManager : MonoBehaviour
 
     private readonly int[] playerEvolutionLevels = new int[4];
 
+    // 新仕様：各色のMist所持上限
+    private const int MAX_MIST_PER_COLOR = 10;
+
+    // 新仕様：Mistの色数（赤・青・緑・黄）
+    private const int MIST_COLOR_COUNT = 4;
+
+    // 新仕様：プレイヤー別・色別のMist所持数
+    // [プレイヤー番号, 色番号]
+    private readonly int[,] playerMistCounts =
+        new int[4, MIST_COLOR_COUNT];
+
+    // 旧仕様との移行期間中だけ使用
     private const int MAX_MIST = 7;
     private const int START_MIST = 3;
 
@@ -281,6 +303,7 @@ public class GameManager : MonoBehaviour
 
         ValidateGameSessionData();
         InitializePlayerUI();
+        InitializeMistEffectLottery();
         CreatePlayers();
         EnterTurnStart();
         RefreshAllPlayerUI();
@@ -302,7 +325,16 @@ public class GameManager : MonoBehaviour
             dimOverlayCanvasGroup.blocksRaycasts = false;
             dimOverlayCanvasGroup.gameObject.SetActive(false);
         }
+        // Mist効果一覧の表示テスト
+        MistEffectPanelUI mistEffectUI =
+            FindFirstObjectByType<MistEffectPanelUI>(
+                FindObjectsInactive.Include
+            );
 
+        if (mistEffectUI != null)
+        {
+            mistEffectUI.Show();
+        }
     }
 
     void ValidateGameSessionData()
@@ -324,7 +356,164 @@ public class GameManager : MonoBehaviour
             playerMistPlusBuff[i] = false;
             playerCakeBuff[i] = false;
 
+            // 新仕様：色別Mist所持数を初期化
+            for (int colorIndex = 0; colorIndex < MIST_COLOR_COUNT; colorIndex++)
+            {
+                playerMistCounts[i, colorIndex] = 0;
+            }
         }
+    }
+
+    void InitializeMistEffectLottery()
+    {
+        selectedMistEffects.Clear();
+
+        SelectRandomMistEffects(MistEffectRank.A, 3);
+        SelectRandomMistEffects(MistEffectRank.B, 2);
+        SelectRandomMistEffects(MistEffectRank.C, 1);
+
+        // 進化は確定枠
+        MistEffectDefinition evolution =
+            mistEffectDefinitions.Find(
+                effect => effect != null &&
+                          effect.effectId == evolutionEffectId
+            );
+
+        if (evolution != null &&
+            !selectedMistEffects.Contains(evolution))
+        {
+            selectedMistEffects.Add(evolution);
+        }
+        else if (evolution == null)
+        {
+            Debug.LogWarning(
+                "[Mist Lottery] 進化効果が登録されていません"
+            );
+        }
+        Debug.Log("========== Mist効果 抽選結果 ==========");
+
+        foreach (MistEffectDefinition effect in selectedMistEffects)
+        {
+            Debug.Log(
+                $"[{effect.rank}] {effect.effectName} / ID: {effect.effectId}"
+            );
+        }
+
+        Debug.Log(
+            $"抽選結果：{selectedMistEffects.Count}種類"
+        );
+    }
+    public IReadOnlyList<MistEffectDefinition> GetSelectedMistEffects()
+    {
+        return selectedMistEffects.AsReadOnly();
+    }
+    void SelectRandomMistEffects(
+        MistEffectRank rank,
+        int count
+    )
+    {
+        List<MistEffectDefinition> candidates =
+            mistEffectDefinitions.FindAll(
+                effect => effect != null &&
+                          effect.rank == rank &&
+                          effect.effectId != evolutionEffectId
+            );
+
+        // 同じ効果を重複抽選しない
+        for (int i = 0; i < count && candidates.Count > 0; i++)
+        {
+            int randomIndex =
+                Random.Range(0, candidates.Count);
+
+            MistEffectDefinition selected =
+                candidates[randomIndex];
+
+            selectedMistEffects.Add(selected);
+            candidates.RemoveAt(randomIndex);
+        }
+
+        if (candidates.Count == 0 &&
+            selectedMistEffects.FindAll(
+                effect => effect.rank == rank
+            ).Count < count)
+        {
+            Debug.LogWarning(
+                $"[Mist Lottery] {rank}ランクの登録数が不足しています"
+            );
+        }
+    }
+
+    // 指定プレイヤーの指定色Mist所持数を取得
+    public int GetMistColorCount(
+        int playerIndex,
+        MistColor color
+    )
+    {
+        int colorIndex = (int)color - 1;
+
+        if (playerIndex < 0 || playerIndex >= 4)
+            return 0;
+
+        if (colorIndex < 0 || colorIndex >= MIST_COLOR_COUNT)
+            return 0;
+
+        return playerMistCounts[playerIndex, colorIndex];
+    }
+
+    // 新仕様：指定色のMistを獲得
+    public void AddMistColor(
+        int playerIndex,
+        MistColor color,
+        int amount
+    )
+    {
+        if (playerIndex < 0 ||
+            playerIndex >= playerMistCounts.GetLength(0))
+            return;
+
+        int colorIndex = (int)color - 1;
+
+        if (colorIndex < 0 ||
+            colorIndex >= MIST_COLOR_COUNT)
+            return;
+
+        if (amount <= 0)
+            return;
+
+        playerMistCounts[playerIndex, colorIndex] =
+            Mathf.Clamp(
+                playerMistCounts[playerIndex, colorIndex] + amount,
+                0,
+                MAX_MIST_PER_COLOR
+            );
+    }
+
+    // 新仕様：指定色のMistを消費
+    public bool TryConsumeMistColor(
+        int playerIndex,
+        MistColor color,
+        int amount
+    )
+    {
+        if (playerIndex < 0 ||
+            playerIndex >= playerMistCounts.GetLength(0))
+            return false;
+
+        int colorIndex = (int)color - 1;
+
+        if (colorIndex < 0 ||
+            colorIndex >= MIST_COLOR_COUNT)
+            return false;
+
+        if (amount <= 0)
+            return false;
+
+        if (playerMistCounts[playerIndex, colorIndex] < amount)
+            return false;
+
+        playerMistCounts[playerIndex, colorIndex] -= amount;
+
+        return true;
     }
 
     void RefreshAllPlayerUI()
@@ -355,13 +544,6 @@ public class GameManager : MonoBehaviour
                 charIndex < characterIcons.Length)
             {
                 topPlayerIcons[i].sprite = characterIcons[charIndex];
-            }
-
-            if (topPlayerHighlights != null &&
-                i < topPlayerHighlights.Length &&
-                topPlayerHighlights[i] != null)
-            {
-                topPlayerHighlights[i].SetActive(i == currentPlayerIndex);
             }
 
             if (topPlayerNumberImages != null &&
@@ -753,191 +935,81 @@ public class GameManager : MonoBehaviour
 
     void GiveInitialMists()
     {
-        for (int i = 0; i < players.Count; i++)
+        for (int playerIndex = 0;
+             playerIndex < players.Count;
+             playerIndex++)
         {
-            for (int j = 0; j < START_MIST; j++)
+            for (int i = 0; i < START_MIST; i++)
             {
-                // =========================================
-                // 色を抽選
-                // 初期配布ではBlackなし
-                // =========================================
-                MistColor mistColor =
+                // 赤・青・緑・黄からランダム抽選
+                MistColor color =
                     (MistColor)Random.Range(1, 5);
 
-                // 旧データにも保持
-                playerMists[i].Add(
-                    mistColor
+                // 新仕様：色別所持数
+                AddMistColor(
+                    playerIndex,
+                    color,
+                    1
                 );
 
+                // 旧UIとの暫定互換
+                playerMists[playerIndex].Add(color);
 
-                // =========================================
-                // 新MistData
-                // 色が決まった時点で効果も抽選
-                // =========================================
-                MistEffectType effect =
-                    MistEffectType.HoleTrap;
-
-                if (mistEffectManager != null)
-                {
-                    effect =
-                        mistEffectManager.GetRandomEffectForColor(
-                            mistColor
-                        );
-                }
-                else
-                {
-                    Debug.LogWarning(
-                        "[MistData] MistEffectManager が設定されていません"
-                    );
-                }
-
-
-                MistData data =
+                playerMistData[playerIndex].Add(
                     new MistData(
-                        mistColor,
-                        effect
-                    );
-
-                playerMistData[i].Add(
-                    data
+                        color,
+                        MistEffectType.HoleTrap
+                    )
                 );
-
-
             }
         }
     }
 
-    void GiveMist(
-    int playerIndex,
-    int amount
-)
+    void GiveMist(int playerIndex, int amount)
     {
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerMists.Count
-        )
-        {
+        if (playerIndex < 0 ||
+            playerIndex >= playerMistCounts.GetLength(0) ||
+            playerIndex >= playerMists.Count ||
+            playerIndex >= playerMistData.Count)
             return;
-        }
-
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerMistData.Count
-        )
-        {
-            return;
-        }
 
         if (amount <= 0)
             return;
 
-
-        // =========================================
-        // MistPlus適用
-        // =========================================
-        if (mistEffectManager != null)
-        {
-            amount =
-                mistEffectManager.ApplyMistPlus(
-                    playerIndex,
-                    amount
-                );
-        }
-
-
         for (int i = 0; i < amount; i++)
         {
-            // =========================================
-            // Mist所持上限
-            // 上限ならMistではなくMP+1
-            // =========================================
-            if (
-                playerMists[playerIndex].Count >=
-                MAX_MIST
-            )
-            {
-                AddMP(
-                    playerIndex,
-                    1
-                );
+            // 赤・青・緑・黄からランダム抽選
+            MistColor color = (MistColor)Random.Range(1, 5);
 
-
+            // 指定色が上限10個なら獲得しない
+            if (GetMistColorCount(playerIndex, color) >= MAX_MIST_PER_COLOR)
                 continue;
-            }
 
+            // 新仕様の所持数を増やす
+            AddMistColor(playerIndex, color, 1);
 
-            // =========================================
-            // 色を抽選
-            // 通常獲得はBlackなし
-            // =========================================
-            MistColor mistColor =
-                (MistColor)Random.Range(
-                    1,
-                    5
-                );
-
-
-            // =========================================
-            // 効果もこの時点で抽選
-            // =========================================
-            MistEffectType effect =
-                MistEffectType.HoleTrap;
-
-            if (mistEffectManager != null)
+            // 旧UI用データも一時的に更新
+            // ※旧UIの7枠を超えないようにする
+            if (playerMists[playerIndex].Count < MAX_MIST)
             {
-                effect =
-                    mistEffectManager.GetRandomEffectForColor(
-                        mistColor
-                    );
-            }
-            else
-            {
-                Debug.LogWarning(
-                    "[MistData] MistEffectManager が設定されていません"
+                playerMists[playerIndex].Add(color);
+
+                playerMistData[playerIndex].Add(
+                    new MistData(
+                        color,
+                        MistEffectType.HoleTrap
+                    )
                 );
             }
-
-
-            // =========================================
-            // 旧データ
-            // =========================================
-            playerMists[playerIndex].Add(
-                mistColor
-            );
-
-
-            // =========================================
-            // 新データ
-            // =========================================
-            MistData data =
-                new MistData(
-                    mistColor,
-                    effect
-                );
-
-            playerMistData[playerIndex].Add(
-                data
-            );
-
-
         }
 
-
-        // =========================================
-        // UI更新
-        // =========================================
         RefreshAllPlayerUI();
 
-        if (
-            mistPanel != null &&
+        if (mistPanel != null &&
             mistPanel.activeSelf &&
-            playerIndex ==
-            currentPlayerIndex
-        )
+            playerIndex == currentPlayerIndex)
         {
-            RefreshMistPanelUI(
-                playerIndex
-            );
+            RefreshMistPanelUI(playerIndex);
         }
     }
 
@@ -1503,6 +1575,70 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public enum MistEffectRank
+    {
+        A,
+        B,
+        C,
+        Fixed
+    }
+
+    [System.Serializable]
+    public class MistEffectDefinition
+    {
+        public string effectId;
+        public string effectName;
+
+        [TextArea(2, 4)]
+        public string description;
+
+        public MistEffectRank rank;
+
+        [Header("Mist Cost")]
+        [Min(0)] public int redCost;
+        [Min(0)] public int blueCost;
+        [Min(0)] public int greenCost;
+        [Min(0)] public int yellowCost;
+    }
+    public bool CanAffordMistEffect(
+    int playerIndex,
+    MistEffectDefinition effect
+)
+    {
+        if (effect == null)
+            return false;
+
+        return
+            GetMistColorCount(playerIndex, MistColor.Red) >= effect.redCost &&
+            GetMistColorCount(playerIndex, MistColor.Blue) >= effect.blueCost &&
+            GetMistColorCount(playerIndex, MistColor.Green) >= effect.greenCost &&
+            GetMistColorCount(playerIndex, MistColor.Yellow) >= effect.yellowCost;
+    }
+
+    public bool TryConsumeMistEffectCost(
+    int playerIndex,
+    MistEffectDefinition effect
+)
+    {
+        // 全色の所持数を確認してから消費する
+        if (!CanAffordMistEffect(playerIndex, effect))
+            return false;
+
+        // コストの不正値を防ぐ
+        if (effect.redCost < 0 ||
+            effect.blueCost < 0 ||
+            effect.greenCost < 0 ||
+            effect.yellowCost < 0)
+            return false;
+
+        // 必要な色のMistをまとめて消費
+        playerMistCounts[playerIndex, 0] -= effect.redCost;
+        playerMistCounts[playerIndex, 1] -= effect.blueCost;
+        playerMistCounts[playerIndex, 2] -= effect.greenCost;
+        playerMistCounts[playerIndex, 3] -= effect.yellowCost;
+
+        return true;
+    }
     void UseMist(int slotIndex)
     {
         int playerIndex =
@@ -2596,12 +2732,6 @@ public class GameManager : MonoBehaviour
                         ),
                         0f
                     );
-
-                // 角通過 → Mist +1
-                GiveMist(
-                    currentPlayerIndex,
-                    1
-                );
             }
         }
 
