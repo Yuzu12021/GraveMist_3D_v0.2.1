@@ -17,11 +17,6 @@ public class MPGaugeUI
     public RectTransform fillMask;
     public TMP_Text valueText;
 }
-[System.Serializable]
-public class MistSlotsUI
-{
-    public Image[] slots;
-}
 public class GameManager : MonoBehaviour
 {
     [Header("Current Player Panel")]
@@ -67,20 +62,7 @@ public class GameManager : MonoBehaviour
 
     [Header("UI")]
     public GameObject dragArea;
-    public GameObject turnButtons;   // Toss / Mist
-    public GameObject mistPanel;
-
-    [Header("Mist Panel")]
-    public Transform mistIconHolder;
-    public GameObject mistIconPrefab;
-    public Sprite[] mistSprites;
-
-    [Header("Mist Slot Empty")]
-    [SerializeField]
-    private Sprite emptyMistSprite;
-
-    [Header("Current Player Mist Slots")]
-    public MistSlotsUI currentPlayerMistSlots;
+    public GameObject turnButtons;   
 
     [Header("Grave")]
     public GameObject gravePrefab;
@@ -162,25 +144,6 @@ public class GameManager : MonoBehaviour
 
     private readonly HashSet<GraveController> stoppedGraves =
         new HashSet<GraveController>();
-
-    [Header("Mist Zoom View")]
-    public RectTransform mistZoomTarget;
-    public CanvasGroup dimOverlayCanvasGroup;
-    public float mistZoomScale = 1.5f;
-    public float mistZoomDuration = 0.2f;
-
-    private bool isMistZoomed = false;
-    private Coroutine mistZoomCoroutine;
-    private Vector3 mistSlotsNormalScale = Vector3.one;
-
-    [Header("Mist Zoom Back Button")]
-    public GameObject mistZoomBackButton;
-    public CanvasGroup mistZoomBackButtonCanvasGroup;
-    public float backButtonFadeDuration = 0.2f;
-    private Coroutine backButtonFadeCoroutine;
-
-    private Vector2 mistSlotsNormalAnchoredPosition;
-    private int mistSlotsNormalSiblingIndex;
 
     [Header("MP UI")]
     public MPGaugeUI currentPlayerMPGauge;
@@ -310,31 +273,6 @@ public class GameManager : MonoBehaviour
         ShowCurrentPlayerPanelImmediate();
 
         AudioManager.Instance.PlayBattleBGM();
-
-        if (mistZoomTarget != null)
-        {
-            mistSlotsNormalScale = mistZoomTarget.localScale;
-            mistSlotsNormalAnchoredPosition = mistZoomTarget.anchoredPosition;
-            mistSlotsNormalSiblingIndex = mistZoomTarget.GetSiblingIndex();
-        }
-        HideMistZoomBackButtonImmediate();
-        if (dimOverlayCanvasGroup != null)
-        {
-            dimOverlayCanvasGroup.alpha = 0f;
-            dimOverlayCanvasGroup.interactable = false;
-            dimOverlayCanvasGroup.blocksRaycasts = false;
-            dimOverlayCanvasGroup.gameObject.SetActive(false);
-        }
-        // Mist効果一覧の表示テスト
-        MistEffectPanelUI mistEffectUI =
-            FindFirstObjectByType<MistEffectPanelUI>(
-                FindObjectsInactive.Include
-            );
-
-        if (mistEffectUI != null)
-        {
-            mistEffectUI.Show();
-        }
     }
 
     void ValidateGameSessionData()
@@ -607,21 +545,28 @@ public class GameManager : MonoBehaviour
             playerEvolutionLevels[playerIndex]
         );
 
-        // Mist
-        if (playerIndex >= 0 &&
-            playerIndex < playerMistData.Count)
-        {
-            RefreshMistSlots(
-                currentPlayerMistSlots,
-                playerMistData[playerIndex]
-            );
-        }
-
+        
         // MPゲージ
         RefreshMPGauge(
             currentPlayerMPGauge,
             playerMP[playerIndex]
         );
+
+        MistInventoryUI inventoryUI =
+    FindFirstObjectByType<MistInventoryUI>(
+        FindObjectsInactive.Include
+    );
+
+        if (inventoryUI != null)
+        {
+            inventoryUI.Refresh();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[MistUI] MistInventoryUIが見つかりません"
+            );
+        }
     }
 
     void RefreshEvolutionGauge(EvolutionGaugeUI gaugeUI, int playerIndex, int level)
@@ -658,196 +603,7 @@ public class GameManager : MonoBehaviour
         gaugeUI.gaugeImage.color = Color.white;
     }
 
-    void RefreshMistSlots(
-    MistSlotsUI mistUI,
-    List<MistData> mists
-)
-    {
-        if (
-            mistUI == null ||
-            mistUI.slots == null
-        )
-        {
-            return;
-        }
-
-
-        for (int i = 0; i < mistUI.slots.Length; i++)
-        {
-            Image slotImage =
-                mistUI.slots[i];
-
-            if (slotImage == null)
-                continue;
-
-
-            // =========================================
-            // Analyzer用 EffectIcon
-            // =========================================
-
-            Transform effectTransform =
-                slotImage.transform.Find(
-                    "EffectIcon"
-                );
-
-            Image effectImage = null;
-
-            if (effectTransform != null)
-            {
-                effectImage =
-                    effectTransform.GetComponent<Image>();
-            }
-
-
-            // =========================================
-            // Mistを所持している枠
-            // =========================================
-
-            if (i < mists.Count)
-            {
-                MistData mist =
-                    mists[i];
-
-
-                // =====================================
-                // Mist本体の色画像
-                // =====================================
-
-                int spriteIndex =
-                    (int)mist.color - 1;
-
-                if (
-                    mistSprites != null &&
-                    spriteIndex >= 0 &&
-                    spriteIndex < mistSprites.Length
-                )
-                {
-                    slotImage.sprite =
-                        mistSprites[spriteIndex];
-
-                    slotImage.enabled =
-                        true;
-
-                    slotImage.color =
-                        Color.white;
-                }
-
-
-                // =====================================
-                // Analyzer表示
-                // =====================================
-
-                if (effectImage != null)
-                {
-
-                    if (mist.isAnalyzed)
-                    {
-                        Sprite effectSprite = null;
-
-                        if (mistEffectManager != null)
-                        {
-                            effectSprite =
-                                mistEffectManager.GetMistEffectSprite(
-                                    mist.effect
-                                );
-                        }
-                        else
-                        {
-                            Debug.LogWarning(
-                                $"[Analyzer UI] " +
-                                $"Slot={i} / " +
-                                $"MistEffectManager=NULL"
-                            );
-                        }
-
-
-                        if (effectSprite != null)
-                        {
-                            effectImage.sprite =
-                                effectSprite;
-
-                            effectImage.enabled =
-                                true;
-
-                            effectImage.color =
-                                new Color(
-                                    1f,
-                                    1f,
-                                    1f,
-                                    0.3f
-                                );
-
-                        }
-                        else
-                        {
-                            effectImage.enabled =
-                                false;
-
-                            Debug.LogWarning(
-                                $"[Analyzer UI] " +
-                                $"Slot={i} / " +
-                                $"SpriteがNULLなので非表示"
-                            );
-                        }
-                    }
-                    else
-                    {
-                        effectImage.enabled =
-                            false;
-
-                    }
-                }
-                else
-                {
-                    Debug.LogWarning(
-                        $"[Analyzer UI] " +
-                        $"Slot={i} / " +
-                        $"{slotImage.name} に " +
-                        $"EffectIconのImageがありません"
-                    );
-                }
-            }
-
-
-            // =========================================
-            // Mistを所持していない空き枠
-            // =========================================
-
-            else
-            {
-                // 空き枠はdot2.pngを表示
-                if (emptyMistSprite != null)
-                {
-                    slotImage.sprite =
-                        emptyMistSprite;
-
-                    slotImage.enabled =
-                        true;
-
-                    slotImage.color =
-                        Color.white;
-                }
-                else
-                {
-                    Debug.LogWarning(
-                        "[Mist UI] emptyMistSprite が未登録です"
-                    );
-
-                    slotImage.enabled =
-                        true;
-                }
-
-
-                // 空き枠なのでAnalyzerアイコンは非表示
-                if (effectImage != null)
-                {
-                    effectImage.enabled =
-                        false;
-                }
-            }
-        }
-    }
-
+    
     void GoToWinScene(int winnerIndex)
     {
         GameSession.WinnerIndex = winnerIndex;
@@ -987,6 +743,11 @@ public class GameManager : MonoBehaviour
 
             // 新仕様の所持数を増やす
             AddMistColor(playerIndex, color, 1);
+            Debug.Log(
+    $"[Mist獲得確認] {playerIndex + 1}P / " +
+    $"{color} / " +
+    $"現在数={GetMistColorCount(playerIndex, color)}"
+);
 
             // 旧UI用データも一時的に更新
             // ※旧UIの7枠を超えないようにする
@@ -1002,15 +763,7 @@ public class GameManager : MonoBehaviour
                 );
             }
         }
-
         RefreshAllPlayerUI();
-
-        if (mistPanel != null &&
-            mistPanel.activeSelf &&
-            playerIndex == currentPlayerIndex)
-        {
-            RefreshMistPanelUI(playerIndex);
-        }
     }
 
 
@@ -1098,20 +851,6 @@ public class GameManager : MonoBehaviour
         playerMistData[playerIndex].RemoveAt(
             mistIndex
         );
-
-
-        RefreshAllPlayerUI();
-
-        if (
-            mistPanel != null &&
-            mistPanel.activeSelf &&
-            playerIndex == currentPlayerIndex
-        )
-        {
-            RefreshMistPanelUI(
-                playerIndex
-            );
-        }
     }
 
     public void SetMistColor(
@@ -1175,190 +914,6 @@ public class GameManager : MonoBehaviour
 
 
         RefreshAllPlayerUI();
-
-        if (
-            mistPanel != null &&
-            mistPanel.activeSelf &&
-            playerIndex == currentPlayerIndex
-        )
-        {
-            RefreshMistPanelUI(
-                playerIndex
-            );
-        }
-    }
-
-    // =========================================================
-    // Mist Panel
-    // =========================================================
-    void ClearMistIcons()
-    {
-        if (mistIconHolder == null) return;
-
-        foreach (Transform child in mistIconHolder)
-        {
-            Destroy(child.gameObject);
-        }
-    }
-
-    void RefreshMistPanelUI(int playerIndex)
-    {
-        if (
-            mistIconHolder == null ||
-            mistIconPrefab == null ||
-            mistSprites == null
-        )
-        {
-            return;
-        }
-
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerMistData.Count
-        )
-        {
-            return;
-        }
-
-
-        ClearMistIcons();
-
-
-        List<MistData> mists =
-            playerMistData[playerIndex];
-
-
-        for (int i = 0; i < mists.Count; i++)
-        {
-            MistData mist =
-                mists[i];
-
-
-            GameObject icon =
-                Instantiate(
-                    mistIconPrefab,
-                    mistIconHolder
-                );
-
-
-            // =========================================
-            // Mist本体
-            // =========================================
-
-            Image baseImage =
-                icon.GetComponent<Image>();
-
-            int colorSpriteIndex =
-                (int)mist.color - 1;
-
-            if (
-                baseImage != null &&
-                colorSpriteIndex >= 0 &&
-                colorSpriteIndex < mistSprites.Length
-            )
-            {
-                baseImage.sprite =
-                    mistSprites[colorSpriteIndex];
-
-                baseImage.enabled =
-                    true;
-
-                baseImage.color =
-                    Color.white;
-            }
-
-
-            // =========================================
-            // Analyzer用 EffectIcon
-            // =========================================
-
-            Transform effectTransform =
-                icon.transform.Find(
-                    "EffectIcon"
-                );
-
-            if (effectTransform == null)
-            {
-                Debug.LogWarning(
-                    "[Analyzer UI] " +
-                    "mistIconPrefab 内に EffectIcon がありません"
-                );
-
-                continue;
-            }
-
-
-            Image effectImage =
-                effectTransform.GetComponent<Image>();
-
-            if (effectImage == null)
-            {
-                Debug.LogWarning(
-                    "[Analyzer UI] " +
-                    "EffectIcon に Image がありません"
-                );
-
-                continue;
-            }
-
-
-            // =========================================
-            // 未解析
-            // =========================================
-
-            if (!mist.isAnalyzed)
-            {
-                effectImage.enabled =
-                    false;
-
-                continue;
-            }
-
-
-            // =========================================
-            // MistEffectManagerから
-            // 効果アイコンを取得
-            // =========================================
-
-            Sprite effectSprite = null;
-
-            if (mistEffectManager != null)
-            {
-                effectSprite =
-                    mistEffectManager.GetMistEffectSprite(
-                        mist.effect
-                    );
-            }
-
-
-            if (effectSprite == null)
-            {
-                effectImage.enabled =
-                    false;
-
-                continue;
-            }
-
-
-            // =========================================
-            // 解析済みMist
-            // =========================================
-
-            effectImage.sprite =
-                effectSprite;
-
-            effectImage.enabled =
-                true;
-
-            // 効果アイコン30%
-            effectImage.color =
-                new Color(
-                    1f,
-                    1f,
-                    1f,
-                    0.3f
-                );
-        }
     }
 
     // =========================================================
@@ -1374,125 +929,36 @@ public class GameManager : MonoBehaviour
 
     public void OnMistPressed()
     {
-        if (isMistZoomed) return;   // 戻るボタンで閉じる運用ならこれ推奨
-        ToggleMistZoom();
+        MistEffectPanelUI panel =
+            FindFirstObjectByType<MistEffectPanelUI>(
+                FindObjectsInactive.Include
+            );
+
+        if (panel == null)
+        {
+            Debug.LogWarning("MistEffectPanelUI が見つかりません");
+            return;
+        }
+
+        panel.Show();
     }
-    void ToggleMistZoom()
-    {
-        isMistZoomed = !isMistZoomed;
-
-        if (rightInfoLayoutGroup != null)
-            rightInfoLayoutGroup.enabled = !isMistZoomed;
-
-        if (mistZoomCoroutine != null)
-            StopCoroutine(mistZoomCoroutine);
-
-        mistZoomCoroutine = StartCoroutine(AnimateMistZoom(isMistZoomed));
-
-        FadeMistZoomBackButton(isMistZoomed);
-    }
+    
     public void OnMistZoomBackButtonPressed()
     {
-        if (!isMistZoomed) return;
+        MistEffectPanelUI panel =
+            FindFirstObjectByType<MistEffectPanelUI>(
+                FindObjectsInactive.Include
+            );
 
-        isMistZoomed = false;
-
-        if (mistZoomCoroutine != null)
-            StopCoroutine(mistZoomCoroutine);
-
-        mistZoomCoroutine = StartCoroutine(AnimateMistZoom(false));
-
-        FadeMistZoomBackButton(false);
+        if (panel != null)
+            panel.Hide();
+        
     }
-    IEnumerator AnimateMistZoom(bool zoomIn)
-    {
-        if (mistZoomTarget == null)
-            yield break;
-
-        if (dimOverlayCanvasGroup != null && zoomIn)
-        {
-            dimOverlayCanvasGroup.gameObject.SetActive(true);
-        }
-
-        // 拡大前の通常位置を保存
-        if (zoomIn)
-        {
-            mistSlotsNormalAnchoredPosition =
-                mistZoomTarget.anchoredPosition;
-
-            mistSlotsNormalSiblingIndex =
-                mistZoomTarget.GetSiblingIndex();
-        }
-
-        // 前面へ
-        if (zoomIn)
-        {
-            mistZoomTarget.SetAsLastSibling();
-        }
-
-        Vector3 startScale = mistZoomTarget.localScale;
-        Vector3 targetScale = zoomIn
-            ? mistSlotsNormalScale * mistZoomScale
-            : mistSlotsNormalScale;
-
-        Vector2 startPos = mistZoomTarget.anchoredPosition;
-        Vector2 targetPos = zoomIn
-            ? mistSlotsNormalAnchoredPosition
-            : mistSlotsNormalAnchoredPosition;
-
-        float startAlpha = dimOverlayCanvasGroup != null ? dimOverlayCanvasGroup.alpha : 0f;
-        float targetAlpha = zoomIn ? 0.75f : 0f;
-
-        float elapsed = 0f;
-
-        while (elapsed < mistZoomDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / mistZoomDuration);
-            t = Mathf.SmoothStep(0f, 1f, t);
-
-            mistZoomTarget.localScale =
-                Vector3.Lerp(startScale, targetScale, t);
-
-            mistZoomTarget.anchoredPosition =
-                Vector2.Lerp(startPos, targetPos, t);
-
-            if (dimOverlayCanvasGroup != null)
-            {
-                dimOverlayCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
-            }
-
-            yield return null;
-        }
-
-        mistZoomTarget.localScale = targetScale;
-        mistZoomTarget.anchoredPosition = targetPos;
-
-        if (!zoomIn)
-        {
-            mistZoomTarget.SetSiblingIndex(mistSlotsNormalSiblingIndex);
-        }
-
-        if (dimOverlayCanvasGroup != null)
-        {
-            dimOverlayCanvasGroup.alpha = targetAlpha;
-
-            if (!zoomIn)
-            {
-                dimOverlayCanvasGroup.gameObject.SetActive(false);
-            }
-        }
-        if (!zoomIn && rightInfoLayoutGroup != null)
-        {
-            rightInfoLayoutGroup.enabled = true;
-        }
-        mistZoomCoroutine = null;
-    }
+   
     void EnterTurnStart()
     {
         if (turnButtons != null) turnButtons.SetActive(true);
         if (dragArea != null) dragArea.SetActive(false);
-        if (mistPanel != null) mistPanel.SetActive(false);
 
         DragAreaController dragController = dragArea != null
             ? dragArea.GetComponent<DragAreaController>()
@@ -1519,36 +985,7 @@ public class GameManager : MonoBehaviour
             dragController.SetDraggable(true);
 
     }
-    void ShowMistZoomBackButtonImmediate()
-    {
-        if (mistZoomBackButton != null)
-            mistZoomBackButton.SetActive(true);
-
-        if (mistZoomBackButtonCanvasGroup != null)
-        {
-            mistZoomBackButtonCanvasGroup.alpha = 1f;
-            mistZoomBackButtonCanvasGroup.interactable = true;
-            mistZoomBackButtonCanvasGroup.blocksRaycasts = true;
-        }
-    }
-
-    void HideMistZoomBackButtonImmediate()
-    {
-        if (mistZoomBackButtonCanvasGroup != null)
-        {
-            mistZoomBackButtonCanvasGroup.alpha = 0f;
-            mistZoomBackButtonCanvasGroup.interactable = false;
-            mistZoomBackButtonCanvasGroup.blocksRaycasts = false;
-        }
-
-        if (mistZoomBackButton != null)
-            mistZoomBackButton.SetActive(false);
-    }
-    public void OnMistSlotClicked(int slotIndex)
-    {
-        UseMist(slotIndex);
-    }
-
+    
     string GetMistColorName(
     MistColor color
 )
@@ -1639,142 +1076,7 @@ public class GameManager : MonoBehaviour
 
         return true;
     }
-    void UseMist(int slotIndex)
-    {
-        int playerIndex =
-            currentPlayerIndex;
-
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerMists.Count
-        )
-        {
-            return;
-        }
-
-        if (
-            playerIndex < 0 ||
-            playerIndex >= playerMistData.Count
-        )
-        {
-            return;
-        }
-
-        if (
-            slotIndex < 0 ||
-            slotIndex >= playerMists[playerIndex].Count
-        )
-        {
-            return;
-        }
-
-        if (
-            slotIndex < 0 ||
-            slotIndex >= playerMistData[playerIndex].Count
-        )
-        {
-            return;
-        }
-
-
-        // =========================================
-        // 使用Mist取得
-        // =========================================
-
-        MistColor usedMistColor =
-            playerMists[playerIndex][slotIndex];
-
-        MistData usedMistData =
-            playerMistData[playerIndex][slotIndex];
-
-
-        // =========================================
-        // 使用演出
-        // =========================================
-
-        ShowUsedMistUI(
-            usedMistColor
-        );
-
-        if (AudioManager.Instance != null)
-        {
-            AudioManager.Instance.PlaySE(
-                "mist_break"
-            );
-
-            AudioManager.Instance.PlaySE(
-                "mist_power"
-            );
-        }
-
-
-        // =========================================
-        // 保存済み効果を実行
-        // ★ ここでは再抽選しない
-        // =========================================
-
-        if (mistEffectManager != null)
-        {
-            Debug.Log(
-    $"{playerIndex + 1}Pが" +
-    $"{GetMistColorName(usedMistData.color)}色のMistを使って" +
-    $"{usedMistData.effect}が発動しました。"
-);
-            mistEffectManager.ExecuteStoredEffect(
-                usedMistData.effect,
-                playerIndex
-            );
-        }
-        else
-        {
-            Debug.LogWarning(
-                "MistEffectManager が設定されていません"
-            );
-        }
-
-
-        // =========================================
-        // Mist削除
-        //
-        // 旧データ / 新データを
-        // 必ず同じslotIndexで削除
-        // =========================================
-
-        playerMists[playerIndex].RemoveAt(
-            slotIndex
-        );
-
-        playerMistData[playerIndex].RemoveAt(
-            slotIndex
-        );
-
-
-        // =========================================
-        // UI更新
-        // =========================================
-
-        RefreshCurrentPlayerPanel();
-
-        if (
-            mistPanel != null &&
-            mistPanel.activeSelf
-        )
-        {
-            RefreshMistPanelUI(
-                playerIndex
-            );
-        }
-
-
-        // =========================================
-        // Mist使用 → MP +1
-        // =========================================
-
-        AddMP(
-            playerIndex,
-            1
-        );
-    }
+    
     void ShowUsedMistUI(MistColor mist)
     {
         if (usedMistImage == null) return;
@@ -3004,8 +2306,6 @@ public class GameManager : MonoBehaviour
         }
 
         ClearSpawnedGraves();
-        ResetMistZoomImmediate();
-
         ProcessEndOfTurn(
             endingPlayerIndex
         );
@@ -3080,31 +2380,7 @@ public class GameManager : MonoBehaviour
             );
         }
     }
-    void ResetMistZoomImmediate()
-    {
-        isMistZoomed = false;
-
-        if (mistZoomCoroutine != null)
-        {
-            StopCoroutine(mistZoomCoroutine);
-            mistZoomCoroutine = null;
-        }
-
-        if (mistZoomTarget != null)
-        {
-            mistZoomTarget.localScale = mistSlotsNormalScale;
-        }
-
-        if (dimOverlayCanvasGroup != null)
-        {
-            dimOverlayCanvasGroup.alpha = 0f;
-            dimOverlayCanvasGroup.interactable = false;
-            dimOverlayCanvasGroup.blocksRaycasts = false;
-            dimOverlayCanvasGroup.gameObject.SetActive(false);
-        }
-
-        HideMistZoomBackButtonImmediate();
-    }
+    
     IEnumerator MoveToPosition(Transform obj, Vector3 target, float time)
     {
         Vector3 start = obj.position;
@@ -3286,49 +2562,4 @@ public class GameManager : MonoBehaviour
 
         currentPlayerPanelFadeCoroutine = null;
     }
-    void FadeMistZoomBackButton(bool fadeIn)
-    {
-        if (mistZoomBackButtonCanvasGroup == null)
-        {
-            if (mistZoomBackButton != null)
-                mistZoomBackButton.SetActive(fadeIn);
-            return;
-        }
-
-        if (backButtonFadeCoroutine != null)
-            StopCoroutine(backButtonFadeCoroutine);
-
-        backButtonFadeCoroutine = StartCoroutine(FadeMistZoomBackButtonCoroutine(fadeIn));
-    }
-
-    IEnumerator FadeMistZoomBackButtonCoroutine(bool fadeIn)
-    {
-        if (mistZoomBackButton != null && fadeIn)
-            mistZoomBackButton.SetActive(true);
-
-        float startAlpha = mistZoomBackButtonCanvasGroup.alpha;
-        float targetAlpha = fadeIn ? 1f : 0f;
-
-        float elapsed = 0f;
-
-        while (elapsed < backButtonFadeDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = Mathf.Clamp01(elapsed / backButtonFadeDuration);
-            t = Mathf.SmoothStep(0f, 1f, t);
-
-            mistZoomBackButtonCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, t);
-            yield return null;
-        }
-
-        mistZoomBackButtonCanvasGroup.alpha = targetAlpha;
-        mistZoomBackButtonCanvasGroup.interactable = fadeIn;
-        mistZoomBackButtonCanvasGroup.blocksRaycasts = fadeIn;
-
-        if (!fadeIn && mistZoomBackButton != null)
-            mistZoomBackButton.SetActive(false);
-
-        backButtonFadeCoroutine = null;
-    }
-
 }

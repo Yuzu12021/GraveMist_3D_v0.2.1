@@ -21,7 +21,13 @@ public class MistEffectPanelUI : MonoBehaviour
     public void Show()
     {
         gameObject.SetActive(true);
-        Refresh();
+
+        // 初回だけボタンを生成する
+        // 開閉のたびに削除・再生成しない
+        if (generatedButtons.Count == 0)
+        {
+            Refresh();
+        }
     }
 
     // パネルを閉じる

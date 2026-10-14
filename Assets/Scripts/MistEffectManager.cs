@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 using System.Collections.Generic;
 
 
@@ -99,6 +100,7 @@ public class MistEffectSpriteData
 
 public class MistEffectManager : MonoBehaviour
 {
+
     // =========================================================
     // References
     // =========================================================
@@ -150,7 +152,8 @@ public class MistEffectManager : MonoBehaviour
 
     [Header("Status UI")]
     [SerializeField]
-    private Transform currentPlayerMistHolder;
+    [FormerlySerializedAs("currentPlayerMistHolder")]
+    private Transform statusIconsHolder;
 
     // Element 0 = 01.png
     // Element 1 = 02.png
@@ -236,29 +239,6 @@ public class MistEffectManager : MonoBehaviour
     {
         return GetRandomEffect(color);
     }
-
-
-    // =========================================================
-    // 旧呼び出し互換
-    // =========================================================
-
-    public MistEffectType UseMist(
-        GameManager.MistColor color,
-        int playerIndex
-    )
-    {
-        MistEffectType effect =
-            GetRandomEffect(color);
-
-        ExecuteEffect(
-            effect,
-            playerIndex
-        );
-
-        return effect;
-    }
-
-
     // =========================================================
     // 色別Mist効果抽選
     // =========================================================
@@ -1655,22 +1635,20 @@ public class MistEffectManager : MonoBehaviour
     {
         if (
             gameManager == null ||
-            currentPlayerMistHolder == null
+            statusIconsHolder == null
         )
         {
             return;
         }
 
         Transform oldStatus =
-            currentPlayerMistHolder.Find(
-                statusName
-            );
+    statusIconsHolder.Find(statusName);
 
         if (oldStatus != null)
         {
-            Destroy(
-                oldStatus.gameObject
-            );
+            // 先に親から外して、次のFindで見つからないようにする
+            oldStatus.SetParent(null, false);
+            Destroy(oldStatus.gameObject);
         }
 
         if (count <= 0)
@@ -1724,7 +1702,7 @@ public class MistEffectManager : MonoBehaviour
         GameObject icon =
             Instantiate(
                 iconPrefab,
-                currentPlayerMistHolder
+                statusIconsHolder
             );
 
         icon.name =
@@ -1992,3 +1970,4 @@ public class MistEffectManager : MonoBehaviour
         return moveAmount;
     }
 }
+

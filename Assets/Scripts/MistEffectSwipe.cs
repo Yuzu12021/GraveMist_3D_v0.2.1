@@ -18,6 +18,10 @@ public class MistEffectSwipe : MonoBehaviour,
     [SerializeField] private float moveDuration = 0.2f;
     [SerializeField] private float slotSpacing = 120f;
 
+    [Header("Selection Appearance")]
+    [SerializeField] private float centerScale = 1.15f;
+    [SerializeField] private float sideScale = 0.9f;
+
     [SerializeField] private MistEffectPanelUI panelUI;
 
     private int centerEffectIndex = 3;
@@ -99,6 +103,7 @@ public class MistEffectSwipe : MonoBehaviour,
         }
         centerEffectIndex = 3;
         panelUI?.ShowEffectDetails(centerEffectIndex);
+        RefreshSlotScales();
         Debug.Log("[MistEffectSwipe] èâä˙âªäÆóπ");
     }
 
@@ -156,7 +161,7 @@ public class MistEffectSwipe : MonoBehaviour,
                     t
                 );
             }
-
+            UpdateSlotScalesByPosition();
             yield return null;
         }
 
@@ -187,7 +192,53 @@ public class MistEffectSwipe : MonoBehaviour,
     (centerEffectIndex + direction + 7) % 7;
 
         panelUI?.ShowEffectDetails(centerEffectIndex);
+        RefreshSlotScales();
         isAnimating = false;
     }
+    private void RefreshSlotScales()
+    {
+        if (slots == null)
+            return;
 
+        for (int i = 0; i < slots.Length; i++)
+        {
+            if (slots[i] == null)
+                continue;
+
+            float scale = (i == CENTER_SLOT)
+                ? centerScale
+                : sideScale;
+
+            slots[i].localScale = Vector3.one * scale;
+        }
+    }
+    private void UpdateSlotScalesByPosition()
+    {
+        if (slots == null)
+            return;
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            float distance = Mathf.Abs(
+                slots[i].anchoredPosition.x -
+                basePositions[CENTER_SLOT].x
+            );
+
+            // íÜâõÇ…ãﬂÇ√Ç≠ÇŸÇ«1ÅAó£ÇÍÇÈÇŸÇ«0
+            float t = 1f - Mathf.Clamp01(
+                distance / slotSpacing
+            );
+
+            // ääÇÁÇ©Ç»ägëÂèkè¨
+            t = Mathf.SmoothStep(0f, 1f, t);
+
+            float scale = Mathf.Lerp(
+                sideScale,
+                centerScale,
+                t
+            );
+
+            slots[i].localScale = Vector3.one * scale;
+        }
+    }
 }
