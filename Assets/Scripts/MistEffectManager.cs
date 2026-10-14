@@ -3,93 +3,39 @@ using UnityEngine.UI;
 using UnityEngine.Serialization;
 using System.Collections.Generic;
 
-
-// =========================================================
-// Mist効果一覧
-// =========================================================
+// 旧GameManager / MistDataの移行が終わるまで型を残す。
+// 新Mist効果の識別には使用しない。
 public enum MistEffectType
 {
-    // Red
-    HoleTrap,
-    Shot,
-    ColorBall,
-    Bind,
-
-    // Blue
-    Protector,
-    Analyzer,
-    Counter,
-    MistPlus,
-
-    // Green
-    MovePlus2,
-    FlashBadge,
-    PowerCake,
-    RespawnCoffin,
-
-    // Yellow
-    UTurn,
-    TimeBomb,
-    MirrorPortal,
-    MagnaTornado,
-
-    // Black
-    RandomEffect,
-    Jackpot,
-    Bug
+    HoleTrap, Shot, ColorBall, Bind,
+    Protector, Analyzer, Counter, MistPlus,
+    MovePlus2, FlashBadge, PowerCake, RespawnCoffin,
+    UTurn, TimeBomb, MirrorPortal, MagnaTornado,
+    RandomEffect, Jackpot, Bug
 }
 
-
-// =========================================================
-// 付与状態の種類
-// =========================================================
 public enum StatusEffectType
 {
-    Bind,
-    Protector,
-    Counter,
-    MistPlus,
-    MovePlus2,
-    PowerCake
+    Bind, Protector, Counter, MistPlus, MovePlus2, PowerCake
 }
 
-
-// =========================================================
-// 攻撃処理結果
-// =========================================================
 public enum AttackResult
 {
-    NormalHit,
-    BlockedByProtector,
-    CounterHit,
-    CounterBlocked
+    NormalHit, BlockedByProtector, CounterHit, CounterBlocked
 }
 
-
-// =========================================================
-// 付与状態1件
-//
-// List内の並び順が、そのまま付与順になる
-// =========================================================
 public class StatusEffectEntry
 {
     public StatusEffectType type;
     public int value;
 
-    public StatusEffectEntry(
-        StatusEffectType type,
-        int value
-    )
+    public StatusEffectEntry(StatusEffectType type, int value)
     {
         this.type = type;
         this.value = value;
     }
 }
 
-
-// =========================================================
-// Mist効果アイコン1件
-// =========================================================
 [System.Serializable]
 public class MistEffectSpriteData
 {
@@ -97,82 +43,33 @@ public class MistEffectSpriteData
     public Sprite sprite;
 }
 
-
 public class MistEffectManager : MonoBehaviour
 {
-
-    // =========================================================
-    // References
-    // =========================================================
-
     [Header("References")]
-    [SerializeField]
-    private GameManager gameManager;
+    [SerializeField] private GameManager gameManager;
+    [SerializeField] private BoardManager boardManager;
 
-    [SerializeField]
-    private BoardManager boardManager;
+    // 旧Statusアイコンとの互換。新効果アイコンへの移行後に整理。
+    [Header("Legacy Status Effect Icons")]
+    [SerializeField] private MistEffectSpriteData[] mistEffectSprites;
 
+    [Header("Hole Visual (temporary compatibility)")]
+    [SerializeField] private GameObject holeMarkerPrefab;
+    [SerializeField] private Sprite[] holeSprites;
 
-    // =========================================================
-    // Mist Effect Icons
-    // =========================================================
-
-    [Header("Mist Effect Icons")]
-    [SerializeField]
-    private MistEffectSpriteData[] mistEffectSprites;
-
-
-    // =========================================================
-    // Hole Trap
-    // =========================================================
-
-    [Header("Hole Trap Visual")]
-    [SerializeField]
-    private GameObject holeMarkerPrefab;
-
-    // Element 0 = 1P
-    // Element 1 = 2P
-    // Element 2 = 3P
-    // Element 3 = 4P
-    [SerializeField]
-    private Sprite[] holeSprites;
-
-    private readonly Dictionary<int, int>
-        holeOwnerByPathIndex =
-            new Dictionary<int, int>();
-
-    private readonly Dictionary<int, GameObject>
-        holeVisualsByPathIndex =
-            new Dictionary<int, GameObject>();
-
-
-    // =========================================================
-    // Status UI
-    // =========================================================
+    private readonly Dictionary<int, int> holeOwnerByPathIndex =
+        new Dictionary<int, int>();
+    private readonly Dictionary<int, GameObject> holeVisualsByPathIndex =
+        new Dictionary<int, GameObject>();
 
     [Header("Status UI")]
     [SerializeField]
     [FormerlySerializedAs("currentPlayerMistHolder")]
     private Transform statusIconsHolder;
 
-    // Element 0 = 01.png
-    // Element 1 = 02.png
-    // ...
-    // Element 9 = 10.png
-    [SerializeField]
-    private Sprite[] statusCountSprites;
+    [SerializeField] private Sprite[] statusCountSprites;
 
-
-
-    // =========================================================
-    // Status Data
-    //
-    // Listの並び順 =
-    // 「付与されたタイミングが早い順」
-    // =========================================================
-
-    private readonly List<StatusEffectEntry>[]
-        playerStatusEffects =
+    private readonly List<StatusEffectEntry>[] playerStatusEffects =
     {
         new List<StatusEffectEntry>(),
         new List<StatusEffectEntry>(),
@@ -180,436 +77,75 @@ public class MistEffectManager : MonoBehaviour
         new List<StatusEffectEntry>()
     };
 
-
-    // =========================================================
-    // Mist効果アイコン取得
-    // Analyzer UIから使用
-    // =========================================================
-
-    public Sprite GetMistEffectSprite(
-        MistEffectType effect
-    )
-    {
-        if (mistEffectSprites == null)
-            return null;
-
-        for (int i = 0; i < mistEffectSprites.Length; i++)
+    // InspectorのeffectIdと完全一致（大文字小文字も一致）させる。
+    private static readonly HashSet<string> NewEffectIds =
+        new HashSet<string>(System.StringComparer.Ordinal)
         {
-            MistEffectSpriteData data =
-                mistEffectSprites[i];
+            "trap", "engine", "grave+1", "grave-1",
+            "metal", "mistPlus", "light", "Garter guard",
+            "Uturn", "shuffle", "Aerocoat",
+            "ColorBall", "Trap Coat", "Graveshower", "Evolution"
+        };
 
-            if (data == null)
-                continue;
+    public bool IsKnownNewEffectId(string effectId)
+    {
+        return !string.IsNullOrEmpty(effectId) &&
+               NewEffectIds.Contains(effectId);
+    }
 
-            if (data.effect != effect)
-                continue;
+    // 新Mist効果の唯一の入口。
+    // 現段階では15種類のID認識のみ実装済み。
+    // 効果本体が未実装なのでfalseを返し、消費処理を進めない。
+    public bool TryExecuteEffectById(string effectId, int playerIndex)
+    {
+        if (!IsValidPlayerIndex(playerIndex))
+        {
+            Debug.LogWarning($"[NewMist] 無効なプレイヤー: {playerIndex}");
+            return false;
+        }
 
-            if (data.sprite == null)
-            {
-                Debug.LogWarning(
-                    $"[MistEffect Icon] " +
-                    $"{effect} のSpriteが設定されていません"
-                );
+        if (!IsKnownNewEffectId(effectId))
+        {
+            Debug.LogWarning($"[NewMist] 未登録のeffectId: {effectId}");
+            return false;
+        }
 
-                return null;
-            }
-
-            return data.sprite;
+        switch (effectId)
+        {
+            case "trap":
+                return ActivateTrap(playerIndex);
         }
 
         Debug.LogWarning(
-            $"[MistEffect Icon] " +
-            $"効果アイコン未登録 : {effect}"
-        );
-
-        return null;
+            $"[NewMist] {effectId} は登録済みですが、効果本体は未実装です。Mistは消費しないでください。");
+        return false;
     }
 
-
-    // =========================================================
-    // Mist効果抽選
-    //
-    // Mist取得時にGameManagerから呼ばれる
-    // 使用時には再抽選しない
-    // =========================================================
-
-    public MistEffectType GetRandomEffectForColor(
-        GameManager.MistColor color
-    )
+    // 旧GameManagerが参照するAPIのコンパイル互換。
+    // 新Mistでは使わない。旧GameManagerの移行完了後に削除。
+    [System.Obsolete("旧Mist専用。新Mistでは使用しないでください。")]
+    public MistEffectType GetRandomEffectForColor(GameManager.MistColor color)
     {
-        return GetRandomEffect(color);
-    }
-    // =========================================================
-    // 色別Mist効果抽選
-    // =========================================================
-
-    MistEffectType GetRandomEffect(
-    GameManager.MistColor color
-)
-    {
-        switch (color)
-        {
-            // =================================================
-            // Red
-            // 現在有効：
-            // HoleTrap / ColorBall
-            // =================================================
-
-            case GameManager.MistColor.Red:
-                {
-                    MistEffectType[] effects =
-                    {
-                MistEffectType.HoleTrap,
-
-                // 一旦抽選対象外
-                // MistEffectType.Shot,
-
-                MistEffectType.ColorBall,
-
-                // 一旦抽選対象外
-                // MistEffectType.Bind
-            };
-
-                    return effects[
-                        Random.Range(
-                            0,
-                            effects.Length
-                        )
-                    ];
-                }
-
-
-            // =================================================
-            // Blue
-            // 現在有効：
-            // Protector / Analyzer
-            // =================================================
-
-            case GameManager.MistColor.Blue:
-                {
-                    MistEffectType[] effects =
-                    {
-                MistEffectType.Protector,
-                MistEffectType.Analyzer,
-
-                // 一旦抽選対象外
-                // MistEffectType.Counter,
-                // MistEffectType.MistPlus
-            };
-
-                    return effects[
-                        Random.Range(
-                            0,
-                            effects.Length
-                        )
-                    ];
-                }
-
-
-            // =================================================
-            // Green
-            // 現在有効：
-            // MovePlus2 / PowerCake
-            // =================================================
-
-            case GameManager.MistColor.Green:
-                {
-                    MistEffectType[] effects =
-                    {
-                MistEffectType.MovePlus2,
-
-                // 一旦抽選対象外
-                // MistEffectType.FlashBadge,
-
-                MistEffectType.PowerCake,
-
-                // 一旦抽選対象外
-                // MistEffectType.RespawnCoffin
-            };
-
-                    return effects[
-                        Random.Range(
-                            0,
-                            effects.Length
-                        )
-                    ];
-                }
-
-
-            // =================================================
-            // Yellow
-            // 現在有効：
-            // UTurn / MagnaTornado
-            // =================================================
-
-            case GameManager.MistColor.Yellow:
-                {
-                    MistEffectType[] effects =
-                    {
-                MistEffectType.UTurn,
-
-                // 一旦抽選対象外
-                // MistEffectType.TimeBomb,
-                // MistEffectType.MirrorPortal,
-
-                MistEffectType.MagnaTornado
-            };
-
-                    return effects[
-                        Random.Range(
-                            0,
-                            effects.Length
-                        )
-                    ];
-                }
-
-
-            // =================================================
-            // Black
-            // 今回は黒Mist自体を排出しない
-            //
-            // 将来実装するためコードは残しておく
-            // =================================================
-
-            case GameManager.MistColor.Black:
-                {
-                    MistEffectType[] effects =
-                    {
-                MistEffectType.RandomEffect,
-                MistEffectType.Jackpot,
-                MistEffectType.Bug
-            };
-
-                    return effects[
-                        Random.Range(
-                            0,
-                            effects.Length
-                        )
-                    ];
-                }
-        }
-
-
-        Debug.LogWarning(
-            $"未定義MistColor: {color}"
-        );
-
+        Debug.LogWarning("[LegacyMist] 旧効果抽選が呼ばれました。GameManagerの移行が必要です。");
         return MistEffectType.HoleTrap;
     }
 
-
-    // =========================================================
-    // 保存済みMist効果を実行
-    //
-    // Analyzer対応後はこちらが正式なMist使用ルート
-    // =========================================================
-
-    public void ExecuteStoredEffect(
-        MistEffectType effect,
-        int playerIndex
-    )
+    [System.Obsolete("旧Mist専用。新Mistでは使用しないでください。")]
+    public void ExecuteStoredEffect(MistEffectType effect, int playerIndex)
     {
-        ExecuteEffect(
-            effect,
-            playerIndex
-        );
+        Debug.LogWarning("[LegacyMist] 旧効果の実行は無効化されています。");
     }
 
-
-    // =========================================================
-    // Mist効果実行
-    // =========================================================
-
-    void ExecuteEffect(
-        MistEffectType effect,
-        int playerIndex
-    )
+    public Sprite GetMistEffectSprite(MistEffectType effect)
     {
-        switch (effect)
+        if (mistEffectSprites == null) return null;
+        foreach (MistEffectSpriteData data in mistEffectSprites)
         {
-            // =================================================
-            // Red
-            // =================================================
-
-            case MistEffectType.HoleTrap:
-
-                ActivateHole(
-                    playerIndex
-                );
-
-                break;
-
-
-            case MistEffectType.Shot:
-
-                ActivateShot(
-                    playerIndex
-                );
-
-                break;
-
-
-            case MistEffectType.ColorBall:
-
-                ActivateColorBall(
-                    playerIndex
-                );
-
-                break;
-
-
-            case MistEffectType.Bind:
-
-                ActivateBind(
-                    playerIndex
-                );
-
-                break;
-
-
-            // =================================================
-            // Blue
-            // =================================================
-
-            case MistEffectType.Protector:
-
-                AddProtector(
-                    playerIndex,
-                    1
-                );
-
-                break;
-
-
-            case MistEffectType.Analyzer:
-
-                if (gameManager != null)
-                {
-                    gameManager.AnalyzeCurrentMists(
-                        playerIndex
-                    );
-                }
-
-                break;
-
-
-            case MistEffectType.Counter:
-
-                AddCounter(
-                    playerIndex,
-                    2
-                );
-
-                break;
-
-
-            case MistEffectType.MistPlus:
-
-                AddMistPlus(
-                    playerIndex,
-                    1
-                );
-
-                break;
-
-
-            // =================================================
-            // Green
-            // =================================================
-
-            case MistEffectType.MovePlus2:
-
-                AddMovePlus2(
-                    playerIndex,
-                    1
-                );
-
-                break;
-
-
-            case MistEffectType.FlashBadge:
-
-                // TODO
-                break;
-
-
-            case MistEffectType.PowerCake:
-
-                AddPowerCake(
-                    playerIndex,
-                    1
-                );
-
-                break;
-
-
-            case MistEffectType.RespawnCoffin:
-
-                // TODO
-                break;
-
-
-            // =================================================
-            // Yellow
-            // =================================================
-
-            case MistEffectType.UTurn:
-
-                if (gameManager != null)
-                {
-                    gameManager.ActivateUturn(
-                        playerIndex
-                    );
-                }
-
-                break;
-
-
-            case MistEffectType.TimeBomb:
-
-                // TODO
-                break;
-
-
-            case MistEffectType.MirrorPortal:
-
-                // TODO
-                break;
-
-
-            case MistEffectType.MagnaTornado:
-
-                if (gameManager != null)
-                {
-                    gameManager.ActivateMagnaTornado();
-                }
-
-                break;
-
-
-            // =================================================
-            // Black
-            // =================================================
-
-            case MistEffectType.RandomEffect:
-
-                // TODO
-                break;
-
-
-            case MistEffectType.Jackpot:
-
-                // TODO
-                break;
-
-
-            case MistEffectType.Bug:
-
-                // TODO
-                break;
+            if (data != null && data.effect == effect)
+                return data.sprite;
         }
+        return null;
     }
-
 
     // =========================================================
     // Status共通
@@ -1130,71 +666,7 @@ public class MistEffectManager : MonoBehaviour
     }
 
 
-    // =========================================================
-    // Red : HoleTrap
-    // =========================================================
-
-    void ActivateHole(
-        int playerIndex
-    )
-    {
-        if (
-            boardManager == null ||
-            boardManager.outerPath == null
-        )
-        {
-            return;
-        }
-
-        List<int> candidates =
-            new List<int>();
-
-        for (
-            int i = 0;
-            i < boardManager.outerPath.Count;
-            i++
-        )
-        {
-            Vector2Int grid =
-                boardManager.outerPath[i];
-
-            // 角は設置対象外
-            if (IsCorner(grid))
-                continue;
-
-            // 既存Holeは設置対象外
-            if (
-                holeOwnerByPathIndex.ContainsKey(i)
-            )
-            {
-                continue;
-            }
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-            return;
-
-        int holePathIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        holeOwnerByPathIndex[
-            holePathIndex
-        ] = playerIndex;
-
-        CreateHoleVisual(
-            holePathIndex,
-            playerIndex
-        );
-    }
-
-
+    // 旧盤面のHole参照互換。新trapの実装まで残す。
     public bool TryGetHoleOwner(
         int pathIndex,
         out int ownerPlayerIndex
@@ -1219,6 +691,61 @@ public class MistEffectManager : MonoBehaviour
         RemoveHoleVisual(
             pathIndex
         );
+    }
+
+
+    // 新Mist trap：旧HoleTrapと同じ盤面トラップを設置する。
+    // 設置可能マスがなければfalseを返し、GameManager側でコストを消費しない。
+    public bool ActivateTrap(int playerIndex)
+    {
+        if (!IsValidPlayerIndex(playerIndex) ||
+            gameManager == null ||
+            boardManager == null ||
+            boardManager.outerPath == null ||
+            boardManager.outerPath.Count == 0)
+        {
+            Debug.LogWarning("[Trap] 参照またはプレイヤー番号が不正です");
+            return false;
+        }
+
+        // 見えないトラップが発生しないよう、表示設定も確認する。
+        if (holeMarkerPrefab == null ||
+            holeMarkerPrefab.GetComponent<SpriteRenderer>() == null ||
+            holeSprites == null ||
+            playerIndex >= holeSprites.Length ||
+            holeSprites[playerIndex] == null)
+        {
+            Debug.LogWarning("[Trap] Hole Marker Prefab / Hole Sprites の設定を確認してください");
+            return false;
+        }
+
+        List<int> candidates = new List<int>();
+        for (int i = 0; i < boardManager.outerPath.Count; i++)
+        {
+            if (IsCorner(boardManager.outerPath[i]))
+                continue;
+
+            if (holeOwnerByPathIndex.ContainsKey(i))
+                continue;
+
+            if (gameManager.IsAnyPlayerAtPathIndex(i))
+                continue;
+
+            candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.LogWarning("[Trap] 設置可能なマスがありません");
+            return false;
+        }
+
+        int pathIndex = candidates[Random.Range(0, candidates.Count)];
+        holeOwnerByPathIndex.Add(pathIndex, playerIndex);
+        CreateHoleVisual(pathIndex, playerIndex);
+
+        Debug.Log($"[Trap] {playerIndex + 1}P がパス {pathIndex} に設置");
+        return true;
     }
 
 
@@ -1257,7 +784,7 @@ public class MistEffectManager : MonoBehaviour
             );
 
         pos.y =
-            5.05f;
+            5.8f;
 
         GameObject marker =
             Instantiate(
@@ -1328,222 +855,6 @@ public class MistEffectManager : MonoBehaviour
         return
             (grid.x == 0 || grid.x == max) &&
             (grid.y == 0 || grid.y == max);
-    }
-
-
-    // =========================================================
-    // Red : Shot
-    // =========================================================
-
-    void ActivateShot(
-        int attackerPlayerIndex
-    )
-    {
-        if (gameManager == null)
-            return;
-
-        List<int> candidates =
-            new List<int>();
-
-        int playerCount =
-            gameManager.GetPlayerCount();
-
-        for (
-            int i = 0;
-            i < playerCount;
-            i++
-        )
-        {
-            if (i == attackerPlayerIndex)
-                continue;
-
-            if (
-                gameManager.GetMistCount(i) <= 0
-            )
-            {
-                continue;
-            }
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-            return;
-
-        int targetPlayerIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        if (
-            TryBlockInterference(
-                targetPlayerIndex,
-                "Shot"
-            )
-        )
-        {
-            return;
-        }
-
-        int mistCount =
-            gameManager.GetMistCount(
-                targetPlayerIndex
-            );
-
-        int targetMistIndex =
-            Random.Range(
-                0,
-                mistCount
-            );
-
-        gameManager.RemoveMist(
-            targetPlayerIndex,
-            targetMistIndex
-        );
-    }
-
-
-    // =========================================================
-    // Red : ColorBall
-    // =========================================================
-
-    void ActivateColorBall(
-        int attackerPlayerIndex
-    )
-    {
-        if (gameManager == null)
-            return;
-
-        List<int> candidates =
-            new List<int>();
-
-        int playerCount =
-            gameManager.GetPlayerCount();
-
-        for (
-            int i = 0;
-            i < playerCount;
-            i++
-        )
-        {
-            if (i == attackerPlayerIndex)
-                continue;
-
-            if (
-                gameManager.GetMistCount(i) <= 0
-            )
-            {
-                continue;
-            }
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-            return;
-
-        int targetPlayerIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        if (
-            TryBlockInterference(
-                targetPlayerIndex,
-                "ColorBall"
-            )
-        )
-        {
-            return;
-        }
-
-        GameManager.MistColor newColor =
-            (GameManager.MistColor)
-            Random.Range(
-                1,
-                5
-            );
-
-        int mistCount =
-            gameManager.GetMistCount(
-                targetPlayerIndex
-            );
-
-        for (
-            int i = 0;
-            i < mistCount;
-            i++
-        )
-        {
-            gameManager.SetMistColor(
-                targetPlayerIndex,
-                i,
-                newColor
-            );
-        }
-    }
-
-
-    // =========================================================
-    // Red : Bind
-    // =========================================================
-
-    void ActivateBind(
-        int attackerPlayerIndex
-    )
-    {
-        if (gameManager == null)
-            return;
-
-        List<int> candidates =
-            new List<int>();
-
-        int playerCount =
-            gameManager.GetPlayerCount();
-
-        for (
-            int i = 0;
-            i < playerCount;
-            i++
-        )
-        {
-            if (i == attackerPlayerIndex)
-                continue;
-
-            candidates.Add(i);
-        }
-
-        if (candidates.Count == 0)
-            return;
-
-        int targetPlayerIndex =
-            candidates[
-                Random.Range(
-                    0,
-                    candidates.Count
-                )
-            ];
-
-        if (
-            TryBlockInterference(
-                targetPlayerIndex,
-                "Bind"
-            )
-        )
-        {
-            return;
-        }
-
-        AddBind(
-            targetPlayerIndex,
-            2
-        );
     }
 
 

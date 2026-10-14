@@ -14,29 +14,19 @@ public class MistEffectPanelUI : MonoBehaviour
     [SerializeField] private TMP_Text effectNameText;
     [SerializeField] private TMP_Text effectDescriptionText;
 
-    private readonly List<Button> generatedButtons =
-        new List<Button>();
+    private readonly List<Button> generatedButtons = new List<Button>();
 
-    // パネルを開いたときに呼び出す
     public void Show()
     {
         gameObject.SetActive(true);
-
-        // 初回だけボタンを生成する
-        // 開閉のたびに削除・再生成しない
-        if (generatedButtons.Count == 0)
-        {
-            Refresh();
-        }
+        Refresh();
     }
 
-    // パネルを閉じる
     public void Hide()
     {
         gameObject.SetActive(false);
     }
 
-    // 抽選された効果をボタンとして表示
     public void Refresh()
     {
         ClearButtons();
@@ -45,9 +35,7 @@ public class MistEffectPanelUI : MonoBehaviour
             effectButtonHolder == null ||
             effectButtonPrefab == null)
         {
-            Debug.LogWarning(
-                "[MistEffectPanelUI] Inspectorの参照が不足しています"
-            );
+            Debug.LogWarning("[MistEffectPanelUI] Inspectorの参照が不足しています");
             return;
         }
 
@@ -59,60 +47,42 @@ public class MistEffectPanelUI : MonoBehaviour
             if (effect == null)
                 continue;
 
-            Button button = Instantiate(
-                effectButtonPrefab,
-                effectButtonHolder
-            );
-
+            Button button = Instantiate(effectButtonPrefab, effectButtonHolder);
             generatedButtons.Add(button);
 
-            TMP_Text label =
-                button.GetComponentInChildren<TMP_Text>();
-
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>();
             if (label != null)
-            {
                 label.text = effect.effectName;
-            }
 
-            button.onClick.AddListener(() =>
-            {
-                // 効果名を表示
-                if (effectNameText != null)
-                {
-                    effectNameText.text = effect.effectName;
-                }
-
-                // 効果説明を表示
-                if (effectDescriptionText != null)
-                {
-                    effectDescriptionText.text = effect.description;
-                }
-
-                // 現在のプレイヤー
-                int playerIndex =
-                    gameManager.GetCurrentPlayerIndex();
-
-                // Mistが足りているか判定
-                bool canAfford =
-                    gameManager.CanAffordMistEffect(
-                        playerIndex,
-                        effect
-                    );
-
-                if (canAfford)
-                {
-                    Debug.Log(
-                        $"[Mist UI] 発動可能：{effect.effectName}"
-                    );
-                }
-                else
-                {
-                    Debug.Log(
-                        $"[Mist UI] Mist不足：{effect.effectName}"
-                    );
-                }
-            });
+            button.onClick.AddListener(() => OnEffectClicked(effect));
         }
+    }
+
+    private void OnEffectClicked(GameManager.MistEffectDefinition effect)
+    {
+        if (gameManager == null || effect == null)
+            return;
+
+        if (effectNameText != null)
+            effectNameText.text = effect.effectName;
+
+        if (effectDescriptionText != null)
+            effectDescriptionText.text = effect.description;
+
+        int playerIndex = gameManager.GetCurrentPlayerIndex();
+
+        if (!gameManager.CanAffordMistEffect(playerIndex, effect))
+        {
+            Debug.Log($"[Mist UI] Mist不足：{effect.effectName}");
+            return;
+        }
+
+        bool activated = gameManager.TryActivateSelectedMistEffect(effect);
+
+        if (activated)
+            Debug.Log($"[Mist UI] 発動処理完了：{effect.effectName}");
+        else
+            Debug.LogWarning($"[Mist UI] 発動できませんでした：{effect.effectName}");
     }
 
     private void ClearButtons()
@@ -120,21 +90,24 @@ public class MistEffectPanelUI : MonoBehaviour
         foreach (Button button in generatedButtons)
         {
             if (button != null)
-            {
                 Destroy(button.gameObject);
-            }
         }
 
         generatedButtons.Clear();
     }
+
     public void ShowEffectDetails(int index)
     {
-        var effects = gameManager.GetSelectedMistEffects();
-
-        if (index < 0 || index >= effects.Count)
+        if (gameManager == null)
             return;
 
-        var effect = effects[index];
+        IReadOnlyList<GameManager.MistEffectDefinition> effects =
+            gameManager.GetSelectedMistEffects();
+
+        if (index < 0 || index >= effects.Count || effects[index] == null)
+            return;
+
+        GameManager.MistEffectDefinition effect = effects[index];
 
         if (effectNameText != null)
             effectNameText.text = effect.effectName;

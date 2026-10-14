@@ -62,7 +62,7 @@ public class GameManager : MonoBehaviour
 
     [Header("UI")]
     public GameObject dragArea;
-    public GameObject turnButtons;   
+    public GameObject turnButtons;
 
     [Header("Grave")]
     public GameObject gravePrefab;
@@ -110,10 +110,8 @@ public class GameManager : MonoBehaviour
         new List<MistEffectDefinition>();
 
     // =========================================================
-    // 新Mistデータ
-    // 色 + 効果 + Analyzer公開状態を保持
-    //
-    // 移行中は旧 playerMists と並行して使用する
+    // 旧Mist個別データ（移行中の互換用）
+    // 新Mistの所持数は playerMistCounts が正本
     // =========================================================
     private readonly List<List<MistData>> playerMistData =
         new List<List<MistData>>();
@@ -131,7 +129,7 @@ public class GameManager : MonoBehaviour
     private readonly int[,] playerMistCounts =
         new int[4, MIST_COLOR_COUNT];
 
-    // 旧仕様との移行期間中だけ使用
+    // 旧仕様との移行期間中だけ使用（新方式への移行後に削除予定）
     private const int MAX_MIST = 7;
     private const int START_MIST = 3;
 
@@ -545,7 +543,7 @@ public class GameManager : MonoBehaviour
             playerEvolutionLevels[playerIndex]
         );
 
-        
+
         // MPゲージ
         RefreshMPGauge(
             currentPlayerMPGauge,
@@ -603,7 +601,7 @@ public class GameManager : MonoBehaviour
         gaugeUI.gaugeImage.color = Color.white;
     }
 
-    
+
     void GoToWinScene(int winnerIndex)
     {
         GameSession.WinnerIndex = winnerIndex;
@@ -892,18 +890,6 @@ public class GameManager : MonoBehaviour
 
 
         // =========================================
-        // 色が変わったため効果も再抽選
-        // =========================================
-        if (mistEffectManager != null)
-        {
-            playerMistData[playerIndex][mistIndex].effect =
-                mistEffectManager.GetRandomEffectForColor(
-                    newColor
-                );
-        }
-
-
-        // =========================================
         // Analyzer公開状態は解除
         //
         // ColorBallによって新しいMist内容になったため
@@ -942,7 +928,7 @@ public class GameManager : MonoBehaviour
 
         panel.Show();
     }
-    
+
     public void OnMistZoomBackButtonPressed()
     {
         MistEffectPanelUI panel =
@@ -952,9 +938,9 @@ public class GameManager : MonoBehaviour
 
         if (panel != null)
             panel.Hide();
-        
+
     }
-   
+
     void EnterTurnStart()
     {
         if (turnButtons != null) turnButtons.SetActive(true);
@@ -985,7 +971,7 @@ public class GameManager : MonoBehaviour
             dragController.SetDraggable(true);
 
     }
-    
+
     string GetMistColorName(
     MistColor color
 )
@@ -1037,12 +1023,21 @@ public class GameManager : MonoBehaviour
         [Min(0)] public int greenCost;
         [Min(0)] public int yellowCost;
     }
+    // 新Mist効果のコストを検証（旧Mistリストは参照しない）
     public bool CanAffordMistEffect(
-    int playerIndex,
-    MistEffectDefinition effect
-)
+        int playerIndex,
+        MistEffectDefinition effect
+    )
     {
-        if (effect == null)
+        if (effect == null ||
+            playerIndex < 0 ||
+            playerIndex >= playerMistCounts.GetLength(0))
+            return false;
+
+        if (effect.redCost < 0 ||
+            effect.blueCost < 0 ||
+            effect.greenCost < 0 ||
+            effect.yellowCost < 0)
             return false;
 
         return
@@ -1052,31 +1047,49 @@ public class GameManager : MonoBehaviour
             GetMistColorCount(playerIndex, MistColor.Yellow) >= effect.yellowCost;
     }
 
+    // 4色分のコストを一括で消費
     public bool TryConsumeMistEffectCost(
-    int playerIndex,
-    MistEffectDefinition effect
-)
+        int playerIndex,
+        MistEffectDefinition effect
+    )
     {
-        // 全色の所持数を確認してから消費する
         if (!CanAffordMistEffect(playerIndex, effect))
             return false;
 
-        // コストの不正値を防ぐ
-        if (effect.redCost < 0 ||
-            effect.blueCost < 0 ||
-            effect.greenCost < 0 ||
-            effect.yellowCost < 0)
-            return false;
-
-        // 必要な色のMistをまとめて消費
         playerMistCounts[playerIndex, 0] -= effect.redCost;
         playerMistCounts[playerIndex, 1] -= effect.blueCost;
         playerMistCounts[playerIndex, 2] -= effect.greenCost;
         playerMistCounts[playerIndex, 3] -= effect.yellowCost;
 
+        RefreshAllPlayerUI();
         return true;
     }
-    
+
+    // 新Mistの発動窓口。
+    // MistEffectManager側が実行不可なら消費しない。
+    // 注意：TryExecuteEffectByIdのtrueは効果の完了を保証しないため、
+    // 実効果の成否が分かるAPIへ今後移行する。
+    public bool TryActivateSelectedMistEffect(MistEffectDefinition effect)
+    {
+        if (effect == null || !selectedMistEffects.Contains(effect))
+            return false;
+
+        if (mistEffectManager == null)
+        {
+            Debug.LogWarning("[Mist] MistEffectManagerが未設定です");
+            return false;
+        }
+
+        int playerIndex = currentPlayerIndex;
+        if (!CanAffordMistEffect(playerIndex, effect))
+            return false;
+
+        if (!mistEffectManager.TryExecuteEffectById(effect.effectId, playerIndex))
+            return false;
+
+        return TryConsumeMistEffectCost(playerIndex, effect);
+    }
+
     void ShowUsedMistUI(MistColor mist)
     {
         if (usedMistImage == null) return;
@@ -2367,7 +2380,7 @@ public class GameManager : MonoBehaviour
                 false;
         }
 
-        
+
 
         // =========================================
         // MistEffectManager側の
@@ -2380,7 +2393,7 @@ public class GameManager : MonoBehaviour
             );
         }
     }
-    
+
     IEnumerator MoveToPosition(Transform obj, Vector3 target, float time)
     {
         Vector3 start = obj.position;
@@ -2470,6 +2483,18 @@ public class GameManager : MonoBehaviour
             GoToWinScene(playerIndex);
 
             return true;
+        }
+
+        return false;
+    }
+
+    // 新Mist trap：既にプレイヤーがいるマスを設置候補から除外する。
+    public bool IsAnyPlayerAtPathIndex(int pathIndex)
+    {
+        for (int i = 0; i < playerPathIndices.Count; i++)
+        {
+            if (playerPathIndices[i] == pathIndex)
+                return true;
         }
 
         return false;

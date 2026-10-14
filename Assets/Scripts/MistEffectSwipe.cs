@@ -109,17 +109,21 @@ public class MistEffectSwipe : MonoBehaviour,
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        Debug.Log("[Mist Swipe] ドラッグ開始！");
-        if (isAnimating || slots == null)
+        if (isAnimating)
             return;
+
+        if (!AreSlotsValid())
+        {
+            ReinitializeSlots();
+            return;
+        }
 
         dragStart = eventData.position;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        Debug.Log("[Mist Swipe] ドラッグ終了！");
-        if (isAnimating || slots == null)
+        if (isAnimating || !AreSlotsValid())
             return;
 
         float deltaX = eventData.position.x - dragStart.x;
@@ -131,25 +135,44 @@ public class MistEffectSwipe : MonoBehaviour,
 
         StartCoroutine(AnimateSwipe(direction));
     }
-
     private IEnumerator AnimateSwipe(int direction)
     {
+        if (!AreSlotsValid())
+            yield break;
+
         isAnimating = true;
 
         Vector2[] starts = new Vector2[SLOT_COUNT];
 
         for (int i = 0; i < SLOT_COUNT; i++)
+        {
+            if (!AreSlotsValid())
+            {
+                isAnimating = false;
+                yield break;
+            }
+
             starts[i] = slots[i].anchoredPosition;
+        }
 
         float elapsed = 0f;
+        float duration = Mathf.Max(0.001f, moveDuration);
 
-        while (elapsed < moveDuration)
+        while (elapsed < duration)
         {
+            if (!AreSlotsValid())
+            {
+                isAnimating = false;
+                ReinitializeSlots();
+                yield break;
+            }
+
             elapsed += Time.deltaTime;
 
             float t = Mathf.SmoothStep(
-                0f, 1f,
-                Mathf.Clamp01(elapsed / moveDuration)
+                0f,
+                1f,
+                Mathf.Clamp01(elapsed / duration)
             );
 
             for (int i = 0; i < SLOT_COUNT; i++)
@@ -161,11 +184,19 @@ public class MistEffectSwipe : MonoBehaviour,
                     t
                 );
             }
+
             UpdateSlotScalesByPosition();
+
             yield return null;
         }
 
-        // スロットを循環させる
+        if (!AreSlotsValid())
+        {
+            isAnimating = false;
+            ReinitializeSlots();
+            yield break;
+        }
+
         if (direction > 0)
         {
             RectTransform first = slots[0];
@@ -185,14 +216,18 @@ public class MistEffectSwipe : MonoBehaviour,
             slots[0] = last;
         }
 
-        // 新しいスロット位置に固定
         for (int i = 0; i < SLOT_COUNT; i++)
             slots[i].anchoredPosition = basePositions[i];
-        centerEffectIndex =
-    (centerEffectIndex + direction + 7) % 7;
 
-        panelUI?.ShowEffectDetails(centerEffectIndex);
+        centerEffectIndex =
+            (centerEffectIndex + direction + SLOT_COUNT)
+            % SLOT_COUNT;
+
+        if (panelUI != null)
+            panelUI.ShowEffectDetails(centerEffectIndex);
+
         RefreshSlotScales();
+
         isAnimating = false;
     }
     private void RefreshSlotScales()
@@ -214,8 +249,10 @@ public class MistEffectSwipe : MonoBehaviour,
     }
     private void UpdateSlotScalesByPosition()
     {
-        if (slots == null)
+        if (!AreSlotsValid())
             return;
+
+        float spacing = Mathf.Max(0.001f, Mathf.Abs(slotSpacing));
 
         for (int i = 0; i < slots.Length; i++)
         {
@@ -224,12 +261,10 @@ public class MistEffectSwipe : MonoBehaviour,
                 basePositions[CENTER_SLOT].x
             );
 
-            // 中央に近づくほど1、離れるほど0
             float t = 1f - Mathf.Clamp01(
-                distance / slotSpacing
+                distance / spacing
             );
 
-            // 滑らかな拡大縮小
             t = Mathf.SmoothStep(0f, 1f, t);
 
             float scale = Mathf.Lerp(
@@ -240,5 +275,42 @@ public class MistEffectSwipe : MonoBehaviour,
 
             slots[i].localScale = Vector3.one * scale;
         }
+    }
+    private bool AreSlotsValid()
+    {
+        if (content == null ||
+            slots == null ||
+            basePositions == null ||
+            slots.Length != SLOT_COUNT ||
+            basePositions.Length != SLOT_COUNT ||
+            content.childCount != SLOT_COUNT)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < SLOT_COUNT; i++)
+        {
+            if (slots[i] == null ||
+                slots[i].parent != content)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private void ReinitializeSlots()
+    {
+        if (!isActiveAndEnabled || content == null)
+            return;
+
+        StopAllCoroutines();
+
+        isAnimating = false;
+        slots = null;
+        basePositions = null;
+
+        StartCoroutine(Initialize());
     }
 }
