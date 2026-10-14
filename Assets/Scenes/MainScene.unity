@@ -2717,17 +2717,6 @@ MonoBehaviour:
     level3: {fileID: 21300000, guid: 5f350b461df236941bdab651f64d7a85, type: 3}
   dragArea: {fileID: 1891502833}
   turnButtons: {fileID: 1819628977}
-  mistPanel: {fileID: 0}
-  mistIconHolder: {fileID: 0}
-  mistIconPrefab: {fileID: 8166539139732379710, guid: 04830623e4fb438419870f12a6835bde, type: 3}
-  mistSprites:
-  - {fileID: 21300000, guid: 47a4edc3490bc5f41b199d855cf76349, type: 3}
-  - {fileID: 21300000, guid: 8eb6184c6bdf8ce499fb896cdea1a972, type: 3}
-  - {fileID: 21300000, guid: 1080926035fa24c4ea707257544b3e8c, type: 3}
-  - {fileID: 21300000, guid: 57d61f6cb92d7744c908d26e470068a6, type: 3}
-  - {fileID: 21300000, guid: b1d30251cf3a5be45bbb295c28fa7d40, type: 3}
-  - {fileID: 21300000, guid: 48ca5be4569d1294581de119c476f9ca, type: 3}
-  emptyMistSprite: {fileID: 21300000, guid: 38f6aa8e4b13b0d478ee921180b91e86, type: 3}
   gravePrefab: {fileID: 7283564061047382052, guid: d5f7f9a772b9c82479247149b1562ada, type: 3}
   graveCount: 4
   spawnHeight: 5
