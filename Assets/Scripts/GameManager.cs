@@ -139,6 +139,45 @@ public class GameManager : MonoBehaviour
     private Coroutine currentPlayerPanelFadeCoroutine;
 
     private int totalSteps = 0;
+    // New engine: pending +3 movement for the current player's next throw.
+    private readonly bool[] enginePending = new bool[4];
+    // grave+1: only for the current turn
+    private readonly bool[] gravePlusOnePending = new bool[4];
+    private int activeGraveCount = 0;
+
+    public bool ActivateGravePlusOne(int playerIndex)
+    {
+        if (currentState != GameState.Idle ||
+            playerIndex != currentPlayerIndex ||
+            playerIndex < 0 || playerIndex >= gravePlusOnePending.Length ||
+            gravePlusOnePending[playerIndex])
+            return false;
+
+        gravePlusOnePending[playerIndex] = true;
+        if (mistEffectManager != null)
+            mistEffectManager.ShowNewMistStatusIcon("grave+1");
+        Debug.Log($"[Grave+1] {playerIndex + 1}P: next throw +1 grave");
+        return true;
+    }
+
+
+    public bool ActivateEngine(int playerIndex)
+    {
+        if (currentState != GameState.Idle ||
+            playerIndex != currentPlayerIndex ||
+            playerIndex < 0 || playerIndex >= enginePending.Length ||
+            enginePending[playerIndex])
+        {
+            return false;
+        }
+
+        enginePending[playerIndex] = true;
+        if (mistEffectManager != null)
+            mistEffectManager.ShowNewMistStatusIcon("engine");
+        Debug.Log("[Engine] Activated for player " + (playerIndex + 1));
+        return true;
+    }
+
 
     private readonly HashSet<GraveController> stoppedGraves =
         new HashSet<GraveController>();
@@ -300,44 +339,33 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    // Deadline build: fixed six effects + Evolution. Keep all definitions in Inspector.
+    private static readonly string[] FixedMistEffectIds =
+    {
+        "trap", "engine", "grave+1",
+        "Uturn", "shuffle", "ColorBall", "Evolution"
+    };
+
     void InitializeMistEffectLottery()
     {
         selectedMistEffects.Clear();
 
-        SelectRandomMistEffects(MistEffectRank.A, 3);
-        SelectRandomMistEffects(MistEffectRank.B, 2);
-        SelectRandomMistEffects(MistEffectRank.C, 1);
-
-        // 進化は確定枠
-        MistEffectDefinition evolution =
-            mistEffectDefinitions.Find(
-                effect => effect != null &&
-                          effect.effectId == evolutionEffectId
+        foreach (string id in FixedMistEffectIds)
+        {
+            MistEffectDefinition effect = mistEffectDefinitions.Find(
+                item => item != null && item.effectId == id
             );
 
-        if (evolution != null &&
-            !selectedMistEffects.Contains(evolution))
-        {
-            selectedMistEffects.Add(evolution);
-        }
-        else if (evolution == null)
-        {
-            Debug.LogWarning(
-                "[Mist Lottery] 進化効果が登録されていません"
-            );
-        }
-        Debug.Log("========== Mist効果 抽選結果 ==========");
+            if (effect == null)
+            {
+                Debug.LogError("[Mist Fixed] Missing effectId in Inspector: " + id);
+                continue;
+            }
 
-        foreach (MistEffectDefinition effect in selectedMistEffects)
-        {
-            Debug.Log(
-                $"[{effect.rank}] {effect.effectName} / ID: {effect.effectId}"
-            );
+            selectedMistEffects.Add(effect);
         }
 
-        Debug.Log(
-            $"抽選結果：{selectedMistEffects.Count}種類"
-        );
+        Debug.Log("[Mist Fixed] Loaded " + selectedMistEffects.Count + "/7 effects.");
     }
     public IReadOnlyList<MistEffectDefinition> GetSelectedMistEffects()
     {
@@ -1415,6 +1443,8 @@ public class GameManager : MonoBehaviour
 
         totalSteps = 0;
         stoppedGraves.Clear();
+        activeGraveCount = graveCount + (gravePlusOnePending[currentPlayerIndex] ? 1 : 0);
+
 
 
         // =========================================================
@@ -1468,7 +1498,7 @@ public class GameManager : MonoBehaviour
         // Grave生成
         // =========================================================
 
-        for (int i = 0; i < graveCount; i++)
+        for (int i = 0; i < activeGraveCount; i++)
         {
             // -----------------------------------------------------
             // Graveごとの基本設定
@@ -1680,7 +1710,7 @@ public class GameManager : MonoBehaviour
             return;
 
         // 全Graveが停止するまで待つ
-        if (stoppedGraves.Count < graveCount)
+        if (stoppedGraves.Count < activeGraveCount)
             return;
 
         // 投擲が無効なら次のターンへ
@@ -1705,6 +1735,12 @@ public class GameManager : MonoBehaviour
                     currentPlayerIndex,
                     totalSteps
                 );
+        }
+
+        if (enginePending[currentPlayerIndex])
+        {
+            totalSteps += 3;
+            enginePending[currentPlayerIndex] = false;
         }
 
         // デバッグ
@@ -2311,6 +2347,14 @@ public class GameManager : MonoBehaviour
         int endingPlayerIndex =
             currentPlayerIndex;
 
+        enginePending[endingPlayerIndex] = false;
+        gravePlusOnePending[endingPlayerIndex] = false;
+        if (mistEffectManager != null)
+        {
+            mistEffectManager.HideNewMistStatusIcon("engine");
+            mistEffectManager.HideNewMistStatusIcon("grave+1");
+        }
+        activeGraveCount = 0;
         ClearCurrentPlayerUsedMistIcons();
 
         if (usedMistImage != null)

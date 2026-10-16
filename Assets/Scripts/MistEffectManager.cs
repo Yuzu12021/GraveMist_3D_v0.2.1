@@ -69,6 +69,86 @@ public class MistEffectManager : MonoBehaviour
 
     [SerializeField] private Sprite[] statusCountSprites;
 
+    [System.Serializable]
+    public class NewMistStatusIcon
+    {
+        public string effectId;
+        public Sprite sprite;
+    }
+
+    [Header("New Mist Status Icons")]
+    [SerializeField] private GameObject newMistStatusIconPrefab;
+    [SerializeField] private NewMistStatusIcon[] newMistStatusIcons;
+
+    private readonly Dictionary<string, GameObject> activeNewMistIcons =
+        new Dictionary<string, GameObject>();
+
+    public void ShowNewMistStatusIcon(string effectId)
+    {
+        if (statusIconsHolder == null || newMistStatusIconPrefab == null)
+            return;
+
+        if (activeNewMistIcons.TryGetValue(effectId, out GameObject existing)
+            && existing != null)
+            return;
+
+        Sprite sprite = null;
+
+        foreach (NewMistStatusIcon entry in newMistStatusIcons)
+        {
+            if (entry != null && entry.effectId == effectId)
+            {
+                sprite = entry.sprite;
+                break;
+            }
+        }
+
+        if (sprite == null)
+        {
+            Debug.LogWarning($"[Mist Status] Spriteñ¢ê›íË: {effectId}");
+            return;
+        }
+
+        GameObject icon = Instantiate(
+            newMistStatusIconPrefab,
+            statusIconsHolder
+        );
+
+        icon.name = "NewMist_" + effectId;
+
+        Image image = icon.GetComponent<Image>();
+
+        if (image == null)
+            image = icon.GetComponentInChildren<Image>();
+
+        if (image == null)
+        {
+            Destroy(icon);
+            Debug.LogWarning("[Mist Status] PrefabÇ…ImageÇ™Ç†ÇËÇ‹ÇπÇÒ");
+            return;
+        }
+
+        image.sprite = sprite;
+        image.color = Color.white;
+        image.enabled = true;
+
+        activeNewMistIcons[effectId] = icon;
+    }
+
+    public void HideNewMistStatusIcon(string effectId)
+    {
+        if (!activeNewMistIcons.TryGetValue(effectId, out GameObject icon))
+            return;
+
+        activeNewMistIcons.Remove(effectId);
+
+        if (icon != null)
+        {
+            icon.transform.SetParent(null, false);
+            Destroy(icon);
+        }
+    }
+
     private readonly List<StatusEffectEntry>[] playerStatusEffects =
     {
         new List<StatusEffectEntry>(),
@@ -114,6 +194,11 @@ public class MistEffectManager : MonoBehaviour
         {
             case "trap":
                 return ActivateTrap(playerIndex);
+
+            case "engine":
+                return gameManager != null && gameManager.ActivateEngine(playerIndex);
+            case "grave+1":
+                return gameManager != null && gameManager.ActivateGravePlusOne(playerIndex);
         }
 
         Debug.LogWarning(
