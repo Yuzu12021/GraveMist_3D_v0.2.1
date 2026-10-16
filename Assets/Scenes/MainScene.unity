@@ -2452,6 +2452,12 @@ MonoBehaviour:
   - {fileID: 21300000, guid: ab03eb384bb6cfc4c972dbec14210049, type: 3}
   - {fileID: 21300000, guid: 2044b895102bfa8498a8f450f042e47c, type: 3}
   - {fileID: 21300000, guid: 4ef2b50c118ac8746b52728191482647, type: 3}
+  newMistStatusIconPrefab: {fileID: 2704392073844119483, guid: 909bfee71f340c147ae7bf24e878717c, type: 3}
+  newMistStatusIcons:
+  - effectId: engine
+    sprite: {fileID: 21300000, guid: d475dfc992aebae49a84a974f0635e26, type: 3}
+  - effectId: grave+1
+    sprite: {fileID: 21300000, guid: 4dceca9550bd4cf46a0fd2e72a1bc174, type: 3}
 --- !u!4 &909950882
 Transform:
   m_ObjectHideFlags: 0
