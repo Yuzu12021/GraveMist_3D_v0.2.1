@@ -218,6 +218,11 @@ public class MistEffectManager : MonoBehaviour
                     Debug.Log("[NewMist] シャッフル発動！");
 
                 return shuffled;
+            case "ColorBall":
+                if (gameManager == null)
+                    return false;
+
+                return gameManager.ActivateColorBall(playerIndex);
         }
 
         Debug.LogWarning(

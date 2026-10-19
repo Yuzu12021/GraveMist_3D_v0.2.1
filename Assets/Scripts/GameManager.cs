@@ -1388,6 +1388,65 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
+    // =========================================================
+    // New Mist : ColorBall
+    // 発動者以外のMistを、合計数を維持してランダム配分
+    // 各色の上限は10
+    // =========================================================
+    public bool ActivateColorBall(int activatingPlayerIndex)
+    {
+        if (activatingPlayerIndex < 0 ||
+            activatingPlayerIndex >= playerMistCounts.GetLength(0))
+            return false;
+
+        const int colorCount = 4;
+        const int maxPerColor = 10;
+
+        for (int p = 0; p < playerMistCounts.GetLength(0); p++)
+        {
+            // 発動者自身は変更しない
+            if (p == activatingPlayerIndex)
+                continue;
+
+            int total = 0;
+
+            for (int c = 0; c < colorCount; c++)
+                total += playerMistCounts[p, c];
+
+            // 全Mistを一度空にしてからランダムに振り分け
+            int[] newCounts = new int[colorCount];
+
+            for (int n = 0; n < total; n++)
+            {
+                int[] available = new int[colorCount];
+                int availableCount = 0;
+
+                for (int c = 0; c < colorCount; c++)
+                {
+                    if (newCounts[c] < maxPerColor)
+                        available[availableCount++] = c;
+                }
+
+                if (availableCount == 0)
+                    break;
+
+                int chosen = available[
+                    Random.Range(0, availableCount)
+                ];
+
+                newCounts[chosen]++;
+            }
+
+            for (int c = 0; c < colorCount; c++)
+                playerMistCounts[p, c] = newCounts[c];
+        }
+
+        RefreshAllPlayerUI();
+
+        Debug.Log("[ColorBall] 相手全員のMist配分を変更！");
+        return true;
+    }
+
     void AddMP(int playerIndex, int amount)
     {
         if (playerIndex < 0 || playerIndex >= playerMP.Length)
