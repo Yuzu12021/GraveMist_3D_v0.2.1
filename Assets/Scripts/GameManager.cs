@@ -1325,7 +1325,68 @@ public class GameManager : MonoBehaviour
         UpdateAllPlayerFacing();
     }
 
+    // =========================================================
+    // New Mist : shuffle
+    // 全プレイヤーを外周のランダムなマスへワープ
+    // ワープ先のマス効果は発動しない
+    // 進行方向は変更しない
+    // =========================================================
+    public bool ActivateShuffle()
+    {
+        if (boardManager == null ||
+    boardManager.outerPath == null ||
+    boardManager.outerPath.Count == 0 ||
+    players.Count == 0 ||
+    currentState != GameState.Idle)
+        {
+            Debug.LogWarning(
+                "[Shuffle] 実行できない状態です"
+            );
+            return false;
+        }
 
+        int pathCount = boardManager.outerPath.Count;
+
+        // 全員分のワープ先を先に決定
+        int[] destinations = new int[players.Count];
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i] == null ||
+                i >= playerPathIndices.Count)
+            {
+                return false;
+            }
+
+            destinations[i] = Random.Range(0, pathCount);
+        }
+
+        // 全プレイヤーをワープ
+        for (int i = 0; i < players.Count; i++)
+        {
+            int targetIndex = destinations[i];
+
+            playerPathIndices[i] = targetIndex;
+
+            Vector2Int grid =
+                boardManager.outerPath[targetIndex];
+
+            Vector3 position =
+                boardManager.GridToWorld(grid.x, grid.y);
+
+            // 既存の駒の高さを維持
+            position.y = players[i].transform.position.y;
+
+            players[i].transform.position = position;
+        }
+
+        // 現在の進行方向に合わせて見た目を更新
+        UpdateAllPlayerFacing();
+
+        Debug.Log("[Shuffle] 全プレイヤーのワープ完了");
+
+        return true;
+    }
 
     void AddMP(int playerIndex, int amount)
     {

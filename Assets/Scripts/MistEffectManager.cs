@@ -199,6 +199,25 @@ public class MistEffectManager : MonoBehaviour
                 return gameManager != null && gameManager.ActivateEngine(playerIndex);
             case "grave+1":
                 return gameManager != null && gameManager.ActivateGravePlusOne(playerIndex);
+            case "Uturn":
+                if (gameManager == null)
+                    return false;
+
+                gameManager.ActivateUturn(playerIndex);
+
+                Debug.Log("[NewMist] Uターン発動！");
+                return true;
+
+            case "shuffle":
+                if (gameManager == null)
+                    return false;
+
+                bool shuffled = gameManager.ActivateShuffle();
+
+                if (shuffled)
+                    Debug.Log("[NewMist] シャッフル発動！");
+
+                return shuffled;
         }
 
         Debug.LogWarning(
