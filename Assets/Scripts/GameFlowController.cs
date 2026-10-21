@@ -46,6 +46,15 @@ public class GameFlowController : MonoBehaviour
     [SerializeField] private AudioClip seVolumePreviewClip;
     [SerializeField] private AudioClip voiceVolumePreviewClip;
 
+    [Header("Cancel Button")]
+    [SerializeField] private GameObject cancelButton;
+
+    void UpdateCancelButton()
+    {
+        if (cancelButton != null)
+            cancelButton.SetActive(selectingPlayer > 0);
+    }
+
     // スライダーを離したときだけプレビューする。OnValueChangedでは再生しない。
     public void OnSEVolumeChanged(float value)
     {
@@ -151,6 +160,7 @@ public class GameFlowController : MonoBehaviour
         UpdateSelectingPlayerUI();
         ResetPlayerSlotIcons();
         UpdateCharacterPreviewImmediate();
+        UpdateCancelButton();
     }
 
     void ResetPlayerSlotIcons()
@@ -305,6 +315,70 @@ public class GameFlowController : MonoBehaviour
         }
     }
 
+    private void ResetAllCharacterSelections()
+    {
+        // 選択プレイヤーを1Pに戻す
+        selectingPlayer = 0;
+
+        // 全プレイヤーの選択データを解除
+        System.Array.Clear(
+            selectedCharacters,
+            0,
+            selectedCharacters.Length
+        );
+
+        // 全プレイヤーの確定アイコンを消す
+        ResetPlayerSlotIcons();
+
+        // 「1P キャラクター選択」に表示を戻す
+        UpdateSelectingPlayerUI();
+
+        // 1P選択中なのでキャンセルボタンを隠す
+        UpdateCancelButton();
+    }
+    private void ChangePlayerCount(int newCount)
+    {
+        // 人数が同じなら何もしない
+        if (GameSession.PlayerCount == newCount)
+            return;
+
+        // 新しい人数を設定
+        GameSession.PlayerCount = newCount;
+
+        // 全員のキャラ選択を解除
+        ResetAllCharacterSelections();
+
+        // プレイヤー人数に合わせてスロット表示を更新
+        UpdatePlayerSlots();
+    }
+
+    public void CancelCharacterSelection()
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySE("menu_cancel");
+
+        // 1P選択中ならモード選択画面へ戻る
+        if (selectingPlayer <= 0)
+        {
+            SceneManager.LoadScene("ModeSelectScene");
+            return;
+        }
+
+        // 1つ前のプレイヤーへ戻る
+        selectingPlayer--;
+
+        // 前のプレイヤーの確定アイコンを消す
+        if (playerSlotIcons != null &&
+            selectingPlayer < playerSlotIcons.Length &&
+            playerSlotIcons[selectingPlayer] != null)
+        {
+            playerSlotIcons[selectingPlayer].sprite = null;
+            playerSlotIcons[selectingPlayer].enabled = false;
+        }
+
+        UpdateSelectingPlayerUI();
+        UpdateCancelButton();
+    }
     public void ConfirmCharacter()
     {
         AudioManager.Instance.PlaySE("menu_enter");
@@ -338,6 +412,7 @@ public class GameFlowController : MonoBehaviour
         else
         {
             UpdateSelectingPlayerUI();
+            UpdateCancelButton();
         }
     }
     void StartBattle()
@@ -415,22 +490,19 @@ public class GameFlowController : MonoBehaviour
 
     public void Set2Players()
     {
-        GameSession.PlayerCount = 2;
-        UpdatePlayerSlots();
+        ChangePlayerCount(2);
         ShowSettingsMenu();
     }
 
     public void Set3Players()
     {
-        GameSession.PlayerCount = 3;
-        UpdatePlayerSlots();
+        ChangePlayerCount(3);
         ShowSettingsMenu();
     }
 
     public void Set4Players()
     {
-        GameSession.PlayerCount = 4;
-        UpdatePlayerSlots();
+        ChangePlayerCount(4);
         ShowSettingsMenu();
     }
 
