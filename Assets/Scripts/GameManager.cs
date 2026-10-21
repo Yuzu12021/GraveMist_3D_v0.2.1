@@ -1112,6 +1112,26 @@ public class GameManager : MonoBehaviour
         if (!CanAffordMistEffect(playerIndex, effect))
             return false;
 
+        // Evolutionのみ、勝利シーンへの遷移前にコストを消費する
+        if (effect.effectId == "Evolution")
+        {
+            if (GetPlayerEvolutionLevel(playerIndex) >= 3)
+                return false;
+
+            if (players[playerIndex] == null ||
+                players[playerIndex].GetComponent<PlayerController>() == null)
+                return false;
+
+            if (!TryConsumeMistEffectCost(playerIndex, effect))
+                return false;
+
+            return mistEffectManager.TryExecuteEffectById(
+                effect.effectId,
+                playerIndex
+            );
+        }
+
+        // その他のMistは従来どおり
         if (!mistEffectManager.TryExecuteEffectById(effect.effectId, playerIndex))
             return false;
 
@@ -2650,6 +2670,37 @@ public class GameManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    // =========================================================
+    // New Mist : Evolution
+    // 進化レベルを1上げる。レベル3で勝利。
+    // =========================================================
+    public bool ActivateMistEvolution(int playerIndex)
+    {
+        if (playerIndex < 0 || playerIndex >= players.Count)
+            return false;
+
+        if (players[playerIndex] == null)
+            return false;
+
+        // レベル3のプレイヤーは進化できない
+        if (GetPlayerEvolutionLevel(playerIndex) >= 3)
+            return false;
+
+        PlayerController pc =
+            players[playerIndex].GetComponent<PlayerController>();
+
+        if (pc == null)
+            return false;
+
+        // 既存の進化演出・レベル更新・勝利処理を利用
+        TryAdvanceEvolution(playerIndex);
+
+        Debug.Log("[Evolution] Mist進化発動！");
+
+        // レベル1・2でも発動成功として扱う
+        return true;
     }
 
     // 新Mist trap：既にプレイヤーがいるマスを設置候補から除外する。

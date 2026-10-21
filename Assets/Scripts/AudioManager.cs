@@ -27,9 +27,13 @@ public class AudioManager : MonoBehaviour
 
     public SoundEntry[] sounds;
 
-    float bgmVolume = 1f;
-    float seVolume = 1f;
-    float voiceVolume = 1f;
+    float bgmVolume = 0.3f;
+    float seVolume = 0.5f;
+    float voiceVolume = 0.5f;
+
+    public float BGMVolume => bgmVolume;
+    public float SEVolume => seVolume;
+    public float VoiceVolume => voiceVolume;
 
     void Awake()
     {
@@ -41,11 +45,14 @@ public class AudioManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        if (bgmSource != null) bgmSource.volume = bgmVolume;
+        if (seSource != null) seSource.volume = 1f;
+        if (voiceSource != null) voiceSource.volume = 1f;
     }
 
     public void SetBGMVolume(float value)
     {
-        bgmVolume = value;
+        bgmVolume = Mathf.Clamp01(value);
 
         if (bgmSource != null)
             bgmSource.volume = bgmVolume;
@@ -53,12 +60,12 @@ public class AudioManager : MonoBehaviour
 
     public void SetSEVolume(float value)
     {
-        seVolume = value;
+        seVolume = Mathf.Clamp01(value);
     }
 
     public void SetVoiceVolume(float value)
     {
-        voiceVolume = value;
+        voiceVolume = Mathf.Clamp01(value);
     }
 
     public void PlayBGM(AudioClip clip, bool loop = true)

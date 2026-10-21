@@ -173,9 +173,8 @@ public class MistEffectManager : MonoBehaviour
                NewEffectIds.Contains(effectId);
     }
 
-    // 新Mist効果の唯一の入口。
-    // 現段階では15種類のID認識のみ実装済み。
-    // 効果本体が未実装なのでfalseを返し、消費処理を進めない。
+    // 新Mist効果の入口。固定7種類を実装済み。
+    // その他の登録IDは未実装のため false を返す。
     public bool TryExecuteEffectById(string effectId, int playerIndex)
     {
         if (!IsValidPlayerIndex(playerIndex))
@@ -223,26 +222,16 @@ public class MistEffectManager : MonoBehaviour
                     return false;
 
                 return gameManager.ActivateColorBall(playerIndex);
+            case "Evolution":
+                if (gameManager == null)
+                    return false;
+
+                return gameManager.ActivateMistEvolution(playerIndex);
         }
 
         Debug.LogWarning(
             $"[NewMist] {effectId} は登録済みですが、効果本体は未実装です。Mistは消費しないでください。");
         return false;
-    }
-
-    // 旧GameManagerが参照するAPIのコンパイル互換。
-    // 新Mistでは使わない。旧GameManagerの移行完了後に削除。
-    [System.Obsolete("旧Mist専用。新Mistでは使用しないでください。")]
-    public MistEffectType GetRandomEffectForColor(GameManager.MistColor color)
-    {
-        Debug.LogWarning("[LegacyMist] 旧効果抽選が呼ばれました。GameManagerの移行が必要です。");
-        return MistEffectType.HoleTrap;
-    }
-
-    [System.Obsolete("旧Mist専用。新Mistでは使用しないでください。")]
-    public void ExecuteStoredEffect(MistEffectType effect, int playerIndex)
-    {
-        Debug.LogWarning("[LegacyMist] 旧効果の実行は無効化されています。");
     }
 
     public Sprite GetMistEffectSprite(MistEffectType effect)
@@ -453,46 +442,6 @@ public class MistEffectManager : MonoBehaviour
     // =========================================================
     // Protector：妨害トリガー
     // =========================================================
-
-    bool TryBlockInterference(
-        int targetPlayerIndex,
-        string effectName
-    )
-    {
-        if (!IsValidPlayerIndex(targetPlayerIndex))
-            return false;
-
-        List<StatusEffectEntry> list =
-            playerStatusEffects[
-                targetPlayerIndex
-            ];
-
-        for (int i = 0; i < list.Count; i++)
-        {
-            StatusEffectEntry status =
-                list[i];
-
-            if (
-                status.type !=
-                StatusEffectType.Protector
-            )
-            {
-                continue;
-            }
-
-            ConsumeOneFromStatus(
-                targetPlayerIndex,
-                i
-            );
-
-            RefreshAllStatusUI();
-
-            return true;
-        }
-
-        return false;
-    }
-
 
     void ConsumeOneFromStatus(
         int playerIndex,
@@ -775,7 +724,7 @@ public class MistEffectManager : MonoBehaviour
     }
 
 
-    // 旧盤面のHole参照互換。新trapの実装まで残す。
+    // 新trapが使用する盤面トラップの参照API。
     public bool TryGetHoleOwner(
         int pathIndex,
         out int ownerPlayerIndex

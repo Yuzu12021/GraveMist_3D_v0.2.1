@@ -5,12 +5,12 @@ using UnityEngine.UI;
 public class CharacterSwipe : MonoBehaviour
 {
     [Header("References")]
-    public RectTransform[] displaySlots;   // 7枠（左右バッファ込み）
-    public Image[] displaySlotImages;      // 7枠分
+    public RectTransform[] displaySlots;   // 7 g i   E o b t @   ?j
+    public Image[] displaySlotImages;      // 7 g  
     public GameFlowController flow;
 
     [Header("Selection")]
-    public RectTransform displaySlot3;     // 中央スロット
+    public RectTransform displaySlot3;     //      X   b g
     public float upwardSelectThreshold = 100f;
 
     [Header("Character Data")]
@@ -57,7 +57,7 @@ public class CharacterSwipe : MonoBehaviour
 
         basePositions = new Vector2[displaySlots.Length];
 
-        // CharacterBar全体の基準Y
+        // CharacterBar S ??Y
         float fixedY = displaySlots[CENTER_SLOT].anchoredPosition.y;
 
         for (int i = 0; i < displaySlots.Length; i++)
@@ -66,7 +66,7 @@ public class CharacterSwipe : MonoBehaviour
 
             basePositions[i] = new Vector2(x, fixedY);
 
-            // 初期位置を完全固定
+            //      ?u     S ? 
             displaySlots[i].anchoredPosition = basePositions[i];
         }
 
@@ -80,7 +80,7 @@ public class CharacterSwipe : MonoBehaviour
         if (displaySlots == null || displaySlots.Length != 7)
         {
             Debug.LogError(
-                "displaySlots は 7 個必要です。（左右バッファ込み）"
+                "displaySlots    7  ?K v ?  B i   E o b t @   ?j"
             );
 
             return false;
@@ -90,7 +90,7 @@ public class CharacterSwipe : MonoBehaviour
             displaySlotImages.Length != 7)
         {
             Debug.LogError(
-                "displaySlotImages は 7 個必要です。（左右バッファ込み）"
+                "displaySlotImages    7  ?K v ?  B i   E o b t @   ?j"
             );
 
             return false;
@@ -100,7 +100,7 @@ public class CharacterSwipe : MonoBehaviour
             characterIcons.Length == 0)
         {
             Debug.LogError(
-                "characterIcons が未設定です。"
+                "characterIcons      ? ?  B"
             );
 
             return false;
@@ -109,7 +109,7 @@ public class CharacterSwipe : MonoBehaviour
         if (displaySlot3 == null)
         {
             Debug.LogError(
-                "displaySlot3 が未設定です。"
+                "displaySlot3      ? ?  B"
             );
 
             return false;
@@ -194,12 +194,12 @@ public class CharacterSwipe : MonoBehaviour
         swipeStart = startPos;
         touching = true;
 
-        // スワイプ開始時点で、
-        // 全DisplaySlotのY座標を基準位置へ戻しておく
+        //  X   C v J n   _ ?A
+        //  SDisplaySlot  Y   W    ?u ??  ?   
         LockDisplaySlotsToHorizontalLine();
 
-        // 上スワイプ決定可能なのは
-        // 中央Slotから開始した場合のみ
+        //   X   C v    ?\ ?? 
+        //     Slot    J n     ? ? 
         startedOnCenterSlot =
             RectTransformUtility.RectangleContainsScreenPoint(
                 displaySlot3,
@@ -217,21 +217,21 @@ public class CharacterSwipe : MonoBehaviour
     {
         touching = false;
 
-        // 入力値そのものはX/Y両方取得する
+        //    ?l   ?  ? X/Y     擾    
         Vector2 swipe = endPos - swipeStart;
 
 
         // -----------------------------------------------------
-        // 上スワイプ
+        //   X   C v
         // -----------------------------------------------------
         //
-        // 中央スロット上から開始
-        // ＋
-        // Y方向が一定以上
-        // ＋
-        // 横より縦方向の入力が強い
+        //      X   b g ォ  J n
+        //  {
+        // Y         ? 
+        //  {
+        //      c     ?  ?     
         //
-        // この条件だけキャラ決定
+        //    ?        L        
         //
         if (
             startedOnCenterSlot &&
@@ -248,27 +248,27 @@ public class CharacterSwipe : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // 横スワイプ
+        //    X   C v
         // -----------------------------------------------------
 
         if (swipe.x < -horizontalThreshold)
         {
-            // 左スワイプ
+            //    X   C v
             StartCoroutine(
                 AnimateSwipe(+1)
             );
         }
         else if (swipe.x > horizontalThreshold)
         {
-            // 右スワイプ
+            //  E X   C v
             StartCoroutine(
                 AnimateSwipe(-1)
             );
         }
         else
         {
-            // スワイプとして成立しなかった場合も
-            // Y位置を確実に固定
+            //  X   C v ?  ?      ?      ?  
+            // Y ?u   m   ?? 
             LockDisplaySlotsToHorizontalLine();
         }
     }
@@ -291,11 +291,11 @@ public class CharacterSwipe : MonoBehaviour
         int originalIndex =
             centerSlot.GetSiblingIndex();
 
-        // 中央キャラだけ最前面へ
+        //      L         ?O ? 
         centerSlot.SetAsLastSibling();
 
-        // 決定アニメーション開始時だけ
-        // 縦方向への移動を許可する
+        //     A j   [ V     J n      
+        //  c     ???      ?   
         Vector2 startPos =
             basePositions[CENTER_SLOT];
 
@@ -389,8 +389,8 @@ public class CharacterSwipe : MonoBehaviour
         isAnimating = true;
 
 
-        // 横移動開始前にも
-        // Y位置を強制的に基準へ戻す
+        //    ?  J n O ? 
+        // Y ?u       I ? ?? 
         LockDisplaySlotsToHorizontalLine();
 
 
@@ -423,7 +423,7 @@ public class CharacterSwipe : MonoBehaviour
 
         if (characterDelta > 0)
         {
-            // 左スワイプ
+            //    X   C v
 
             endPositions[0] =
                 basePositions[0];
@@ -448,7 +448,7 @@ public class CharacterSwipe : MonoBehaviour
         }
         else
         {
-            // 右スワイプ
+            //  E X   C v
 
             endPositions[0] =
                 basePositions[1];
@@ -489,8 +489,8 @@ public class CharacterSwipe : MonoBehaviour
             characterIcons.Length;
 
 
-        // Sprite差し替え後は
-        // 全Slotを元の固定位置へ戻す
+        // Sprite     ?    
+        //  SSlot     ?? ?u ?? 
         for (
             int i = 0;
             i < displaySlots.Length;
@@ -507,6 +507,16 @@ public class CharacterSwipe : MonoBehaviour
         RefreshScalesImmediate();
         NotifyCenterCharacter();
 
+        // スワイプ完了時、中央に来たキャラクターのCVを1回再生
+        if (flow != null && AudioManager.Instance != null &&
+            flow.characterSelectVoices != null &&
+            selectedCharacterIndex >= 0 &&
+            selectedCharacterIndex < flow.characterSelectVoices.Length)
+        {
+            AudioClip voice = flow.characterSelectVoices[selectedCharacterIndex];
+            if (voice != null)
+                AudioManager.Instance.PlayVoiceClip(voice);
+        }
 
         if (AudioManager.Instance != null)
         {
@@ -608,7 +618,7 @@ public class CharacterSwipe : MonoBehaviour
                 i++
             )
             {
-                // Xだけ補間
+                // X       
                 float x =
                     Mathf.Lerp(
                         startPositions[i].x,
@@ -617,7 +627,7 @@ public class CharacterSwipe : MonoBehaviour
                     );
 
 
-                // Yは絶対に固定
+                // Y ? ??? 
                 float y =
                     basePositions[i].y;
 

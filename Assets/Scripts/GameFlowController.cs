@@ -37,6 +37,74 @@ public class GameFlowController : MonoBehaviour
     public GameObject playerCountPanel;
     public GameObject soundSettingsPanel;
 
+    [Header("Volume Sliders (0 - 1)")]
+    [SerializeField] private Slider bgmVolumeSlider;
+    [SerializeField] private Slider seVolumeSlider;
+    [SerializeField] private Slider voiceVolumeSlider;
+
+    [Header("Volume Preview")]
+    [SerializeField] private AudioClip seVolumePreviewClip;
+    [SerializeField] private AudioClip voiceVolumePreviewClip;
+
+    // スライダーを離したときだけプレビューする。OnValueChangedでは再生しない。
+    public void OnSEVolumeChanged(float value)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SetSEVolume(value);
+    }
+
+    public void OnVoiceVolumeChanged(float value)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SetVoiceVolume(value);
+    }
+
+    private void InitializeVolumeSliders()
+    {
+        // Sliderの表示とAudioManagerの音量を揃える。初期化時の試聴はしない。
+        if (AudioManager.Instance == null) return;
+
+        if (bgmVolumeSlider != null)
+        {
+            bgmVolumeSlider.SetValueWithoutNotify(AudioManager.Instance.BGMVolume);
+            bgmVolumeSlider.onValueChanged.AddListener(AudioManager.Instance.SetBGMVolume);
+        }
+        if (seVolumeSlider != null)
+        {
+            seVolumeSlider.SetValueWithoutNotify(AudioManager.Instance.SEVolume);
+            seVolumeSlider.onValueChanged.AddListener(OnSEVolumeChanged);
+            AttachVolumeReleaseHandler(seVolumeSlider, true);
+        }
+        if (voiceVolumeSlider != null)
+        {
+            voiceVolumeSlider.SetValueWithoutNotify(AudioManager.Instance.VoiceVolume);
+            voiceVolumeSlider.onValueChanged.AddListener(OnVoiceVolumeChanged);
+            AttachVolumeReleaseHandler(voiceVolumeSlider, false);
+        }
+    }
+
+    private void AttachVolumeReleaseHandler(Slider slider, bool isSE)
+    {
+        VolumeSliderReleaseHandler handler = slider.GetComponent<VolumeSliderReleaseHandler>();
+        if (handler == null)
+            handler = slider.gameObject.AddComponent<VolumeSliderReleaseHandler>();
+
+        handler.Configure(slider, () =>
+        {
+            if (AudioManager.Instance == null) return;
+            if (isSE)
+                AudioManager.Instance.PlaySEClip(seVolumePreviewClip);
+            else
+            {
+                AudioClip preview = voiceVolumePreviewClip;
+                if (preview == null && characterSelectVoices != null &&
+                    currentCharacter >= 0 && currentCharacter < characterSelectVoices.Length)
+                    preview = characterSelectVoices[currentCharacter];
+                AudioManager.Instance.PlayVoiceClip(preview);
+            }
+        });
+    }
+
     int selectingPlayer = 0;
     int[] selectedCharacters = new int[4];
 
@@ -45,6 +113,10 @@ public class GameFlowController : MonoBehaviour
 
     void Start()
     {
+        // キャラクター選択画面に入ったときの初期人数
+        if (SceneManager.GetActiveScene().name == "CharacterSelectScene")
+            GameSession.PlayerCount = 2;
+
         if (winnerText != null)
         {
             int w = GameSession.WinnerIndex;
@@ -74,6 +146,7 @@ public class GameFlowController : MonoBehaviour
         if (soundSettingsPanel != null)
             soundSettingsPanel.SetActive(false);
 
+        InitializeVolumeSliders();
         UpdatePlayerSlots();
         UpdateSelectingPlayerUI();
         ResetPlayerSlotIcons();
@@ -407,4 +480,68 @@ public class GameFlowController : MonoBehaviour
 
         ShowSettingsMenu();
     }
+}
+
+// Sliderの操作終了時に1回だけ試聴。ドラッグと通常クリックに対応。
+public class VolumeSliderReleaseHandler : MonoBehaviour,
+    UnityEngine.EventSystems.IPointerDownHandler,
+    UnityEngine.EventSystems.IPointerUpHandler,
+    UnityEngine.EventSystems.IBeginDragHandler,
+    UnityEngine.EventSystems.IEndDragHandler
+{
+    private Slider slider;
+    private System.Action onReleased;
+    private bool pressed;
+    private float startingValue;
+
+    public void Configure(Slider targetSlider, System.Action callback)
+    {
+        slider = targetSlider;
+        onReleased = callback;
+    }
+
+    public void OnPointerDown(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        if (slider == null || !slider.interactable) return;
+        pressed = true;
+        startingValue = slider.value;
+    }
+
+    public void OnBeginDrag(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        if (slider == null || !slider.interactable) return;
+        if (!pressed)
+        {
+            pressed = true;
+            startingValue = slider.value;
+        }
+    }
+
+    public void OnEndDrag(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        FinishInteraction();
+    }
+
+    public void OnPointerUp(UnityEngine.EventSystems.PointerEventData eventData)
+    {
+        FinishInteraction();
+    }
+
+    private void Update()
+    {
+        // PointerUpがUIに届かないケース（UI外でマウスを離す等）への保険。
+        if (pressed && Input.GetMouseButtonUp(0))
+            FinishInteraction();
+    }
+
+    private void FinishInteraction()
+    {
+        if (!pressed) return;
+        pressed = false;
+        if (slider != null && slider.interactable &&
+            !Mathf.Approximately(startingValue, slider.value))
+            onReleased?.Invoke();
+    }
+
+    private void OnDisable() { pressed = false; }
 }
