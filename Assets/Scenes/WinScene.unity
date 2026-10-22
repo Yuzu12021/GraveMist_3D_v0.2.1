@@ -255,6 +255,8 @@ MonoBehaviour:
   resultRoot: {fileID: 1987737599}
   menuRoot: {fileID: 1874189041}
   tapAnywhereToOpenMenu: 1
+  topRow: {fileID: 1150011360}
+  bottomRow: {fileID: 793939601}
 --- !u!1 &193585366
 GameObject:
   m_ObjectHideFlags: 0

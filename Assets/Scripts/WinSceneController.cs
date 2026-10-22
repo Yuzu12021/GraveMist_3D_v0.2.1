@@ -26,6 +26,10 @@ public class WinSceneController : MonoBehaviour
     [SerializeField] private GameObject menuRoot;
     [SerializeField] private bool tapAnywhereToOpenMenu = true;
 
+    [Header("Player Slot Rows")]
+    [SerializeField] private GameObject topRow;
+    [SerializeField] private GameObject bottomRow;
+
     private bool menuOpened;
 
     private void Start()
@@ -79,6 +83,7 @@ public class WinSceneController : MonoBehaviour
             (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) ||
              Input.GetKeyDown(KeyCode.Space)))
             ShowMenu();
+        UpdatePlayerSlotLayout();
     }
 
     public void ShowResult()
@@ -107,5 +112,25 @@ public class WinSceneController : MonoBehaviour
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlaySE("menu_enter");
         SceneManager.LoadScene(sceneName);
+    }
+    void UpdatePlayerSlotLayout()
+    {
+        int count = Mathf.Clamp(GameSession.PlayerCount, 2, 4);
+
+        if (topRow != null)
+            topRow.SetActive(true);
+
+        if (bottomRow != null)
+            bottomRow.SetActive(count >= 3);
+
+        // 4Pの枠は4人プレイのときだけ表示
+        if (playerSlotRoots != null && playerSlotRoots.Length >= 4)
+        {
+            if (playerSlotRoots[2] != null)
+                playerSlotRoots[2].SetActive(count >= 3);
+
+            if (playerSlotRoots[3] != null)
+                playerSlotRoots[3].SetActive(count >= 4);
+        }
     }
 }

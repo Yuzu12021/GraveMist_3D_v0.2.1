@@ -570,20 +570,18 @@ public class GameManager : MonoBehaviour
             playerMP[playerIndex]
         );
 
-        MistInventoryUI inventoryUI =
-    FindFirstObjectByType<MistInventoryUI>(
-        FindObjectsInactive.Include
+        MistInventoryUI[] inventoryUIs =
+    FindObjectsByType<MistInventoryUI>(
+        FindObjectsInactive.Include,
+        FindObjectsSortMode.None
     );
 
-        if (inventoryUI != null)
+        foreach (MistInventoryUI inventoryUI in inventoryUIs)
         {
-            inventoryUI.Refresh();
-        }
-        else
-        {
-            Debug.LogWarning(
-                "[MistUI] MistInventoryUIが見つかりません"
-            );
+            if (inventoryUI != null)
+            {
+                inventoryUI.Refresh();
+            }
         }
     }
 
