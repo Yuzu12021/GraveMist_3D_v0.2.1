@@ -211,10 +211,10 @@ MonoBehaviour:
   winnerCharacterNameImage: {fileID: 1155278364}
   winnerNumberImage: {fileID: 356138223}
   winnerNumberSprites:
-  - {fileID: 21300000, guid: 4fea50e71d8492148b10044e4f7cfb23, type: 3}
-  - {fileID: 21300000, guid: 4a28bb7affb109641a046e5dafc3ce60, type: 3}
-  - {fileID: 21300000, guid: bbf98c2efa31a1542b51cef04456b4aa, type: 3}
-  - {fileID: 21300000, guid: 4a6cb2f88d2066b498941344fc846797, type: 3}
+  - {fileID: 21300000, guid: ccdfcf37d18475c44b8c8ecd67bb235e, type: 3}
+  - {fileID: 21300000, guid: 19b41e6e9891d3c41a2938dcd49a21bc, type: 3}
+  - {fileID: 21300000, guid: 032c7b046c3a53e45ba1ef6f0b0ccdb0, type: 3}
+  - {fileID: 21300000, guid: 2164714634623104ab102a4ce8743019, type: 3}
   characterPortraits:
   - {fileID: 21300000, guid: 1795099b1153d8f4e84a1a0d78a6e6fd, type: 3}
   - {fileID: 21300000, guid: 90517c19a2971434ca2fb979c2699df2, type: 3}
@@ -502,7 +502,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 4fea50e71d8492148b10044e4f7cfb23, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ccdfcf37d18475c44b8c8ecd67bb235e, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -537,7 +537,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -500, y: 400}
-  m_SizeDelta: {x: 178, y: 119}
+  m_SizeDelta: {x: 352, y: 138}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &432802834
 GameObject:

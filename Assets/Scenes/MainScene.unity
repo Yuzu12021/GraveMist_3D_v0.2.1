@@ -625,7 +625,6 @@ GameObject:
   m_Component:
   - component: {fileID: 226763573}
   - component: {fileID: 226763575}
-  - component: {fileID: 226763574}
   m_Layer: 5
   m_Name: RightInfo
   m_TagString: Untagged
@@ -656,20 +655,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &226763574
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 226763572}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Padding: {x: 0, y: 0, z: 0, w: 0}
-  m_Softness: {x: 0, y: 0}
 --- !u!114 &226763575
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1089,7 +1074,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -25, y: 15}
-  m_SizeDelta: {x: 50, y: 50}
+  m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &295680956
 MonoBehaviour:
@@ -1448,7 +1433,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -200, y: 10}
-  m_SizeDelta: {x: 50, y: 50}
+  m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &383351904
 MonoBehaviour:
@@ -2637,7 +2622,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 75, y: -15}
-  m_SizeDelta: {x: 50, y: 50}
+  m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &745576212
 MonoBehaviour:
@@ -3174,9 +3159,9 @@ MonoBehaviour:
   newMistStatusIconPrefab: {fileID: 2704392073844119483, guid: 909bfee71f340c147ae7bf24e878717c, type: 3}
   newMistStatusIcons:
   - effectId: engine
-    sprite: {fileID: 21300000, guid: d475dfc992aebae49a84a974f0635e26, type: 3}
+    sprite: {fileID: 21300000, guid: bdb23ac188a1fd340ad207dd6a54cce7, type: 3}
   - effectId: grave+1
-    sprite: {fileID: 21300000, guid: 4dceca9550bd4cf46a0fd2e72a1bc174, type: 3}
+    sprite: {fileID: 21300000, guid: 3a37889335f559c48b1921a88ff87cf6, type: 3}
 --- !u!4 &909950882
 Transform:
   m_ObjectHideFlags: 0
@@ -3821,8 +3806,26 @@ MonoBehaviour:
   gameManager: {fileID: 961388617}
   effectButtonHolder: {fileID: 1295611126}
   effectButtonPrefab: {fileID: 8245869755433217, guid: 23ee7143753d49e4ca03042d8adf045c, type: 3}
+  effectIcons:
+  - effectName: "\u30A8\u30F3\u30B8\u30F3"
+    icon: {fileID: 21300000, guid: bdb23ac188a1fd340ad207dd6a54cce7, type: 3}
+  - effectName: "\u30B0\u30EC\u30A4\u30D6+1"
+    icon: {fileID: 21300000, guid: 3a37889335f559c48b1921a88ff87cf6, type: 3}
+  - effectName: "\u30AB\u30E9\u30FC\u30DC\u30FC\u30EB"
+    icon: {fileID: 21300000, guid: d45ac95ce67a98b4d9ac76bb6377bf0e, type: 3}
+  - effectName: "\u9032\u5316"
+    icon: {fileID: 21300000, guid: 1bad1cab54e893946ad9db3aba26c788, type: 3}
+  - effectName: "\u30B7\u30E3\u30C3\u30D5\u30EB"
+    icon: {fileID: 21300000, guid: 7513e7ec864589346a570817f0171333, type: 3}
+  - effectName: "\u30C8\u30E9\u30C3\u30D7"
+    icon: {fileID: 21300000, guid: 0590debcae07fb845bc0da9333b445da, type: 3}
+  - effectName: "U\u30BF\u30FC\u30F3"
+    icon: {fileID: 21300000, guid: 3a8f96c02e6472a46bcc0a3e1914ea0f, type: 3}
+  hideLabelWhenIconExists: 1
   effectNameText: {fileID: 1362085793}
   effectDescriptionText: {fileID: 1743786107}
+  effectScrollRect: {fileID: 0}
+  resetScrollPositionOnOpen: 1
 --- !u!114 &1003383209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4464,17 +4467,17 @@ MonoBehaviour:
   greenCountImage: {fileID: 745576212}
   yellowCountImage: {fileID: 295680956}
   countSprites:
-  - {fileID: 21300000, guid: 4584f2a01c0e48746bc83fd19a27a20b, type: 3}
-  - {fileID: 21300000, guid: 898b2b33a3805b74f914576c075f0892, type: 3}
-  - {fileID: 21300000, guid: 1a69ccb2b8001e646be2b4bf7cbf1a11, type: 3}
-  - {fileID: 21300000, guid: 3ac47bab585d6fe45a03fb3c5dca0538, type: 3}
-  - {fileID: 21300000, guid: f8fb52d7f9feeaa41be763aa12968457, type: 3}
-  - {fileID: 21300000, guid: 1b72a6999abbbe84992c9136e69565a4, type: 3}
-  - {fileID: 21300000, guid: d5406b23cdca7ed4cb3ea94f130c999a, type: 3}
-  - {fileID: 21300000, guid: 2942deac32465fd40b03dc0102308470, type: 3}
-  - {fileID: 21300000, guid: b0d9a6bdabd523e48b20ce8dd1eb8ca3, type: 3}
-  - {fileID: 21300000, guid: 547102f33e3f3ce48971804bda2d7779, type: 3}
-  - {fileID: 21300000, guid: fc2504224e9dd464aabd4841442bc472, type: 3}
+  - {fileID: 21300000, guid: 779213d708d0e364da70e7938f76ed23, type: 3}
+  - {fileID: 21300000, guid: a7463341d4eaa914ba1b4b975625489e, type: 3}
+  - {fileID: 21300000, guid: 8532af81d6206c449b2e709d4096e7db, type: 3}
+  - {fileID: 21300000, guid: b01022944e7ac96439dcd3b7dbb18f97, type: 3}
+  - {fileID: 21300000, guid: dc5888af8c4ffa245a1967748765a9eb, type: 3}
+  - {fileID: 21300000, guid: 7266f8cdae17a874aa477e7430d10ce7, type: 3}
+  - {fileID: 21300000, guid: 9ec85bc3d36eec243b27dfd1ba73ff34, type: 3}
+  - {fileID: 21300000, guid: 0f20fd8318171a34d8c3972e5c547678, type: 3}
+  - {fileID: 21300000, guid: f3aa89b1c0cb9b343a626941adc2c502, type: 3}
+  - {fileID: 21300000, guid: 4c746adf68b06dd43bf41b01b850f404, type: 3}
+  - {fileID: 21300000, guid: ce1c48be05420724f9aa0c241a5e8457, type: 3}
 --- !u!222 &1043964307
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7117,17 +7120,17 @@ MonoBehaviour:
   greenCountImage: {fileID: 278567198}
   yellowCountImage: {fileID: 1038615446}
   countSprites:
-  - {fileID: 21300000, guid: 4584f2a01c0e48746bc83fd19a27a20b, type: 3}
-  - {fileID: 21300000, guid: 898b2b33a3805b74f914576c075f0892, type: 3}
-  - {fileID: 21300000, guid: 1a69ccb2b8001e646be2b4bf7cbf1a11, type: 3}
-  - {fileID: 21300000, guid: 3ac47bab585d6fe45a03fb3c5dca0538, type: 3}
-  - {fileID: 21300000, guid: f8fb52d7f9feeaa41be763aa12968457, type: 3}
-  - {fileID: 21300000, guid: 1b72a6999abbbe84992c9136e69565a4, type: 3}
-  - {fileID: 21300000, guid: d5406b23cdca7ed4cb3ea94f130c999a, type: 3}
-  - {fileID: 21300000, guid: 2942deac32465fd40b03dc0102308470, type: 3}
-  - {fileID: 21300000, guid: b0d9a6bdabd523e48b20ce8dd1eb8ca3, type: 3}
-  - {fileID: 21300000, guid: 547102f33e3f3ce48971804bda2d7779, type: 3}
-  - {fileID: 21300000, guid: fc2504224e9dd464aabd4841442bc472, type: 3}
+  - {fileID: 21300000, guid: 779213d708d0e364da70e7938f76ed23, type: 3}
+  - {fileID: 21300000, guid: a7463341d4eaa914ba1b4b975625489e, type: 3}
+  - {fileID: 21300000, guid: 8532af81d6206c449b2e709d4096e7db, type: 3}
+  - {fileID: 21300000, guid: b01022944e7ac96439dcd3b7dbb18f97, type: 3}
+  - {fileID: 21300000, guid: dc5888af8c4ffa245a1967748765a9eb, type: 3}
+  - {fileID: 21300000, guid: 7266f8cdae17a874aa477e7430d10ce7, type: 3}
+  - {fileID: 21300000, guid: 9ec85bc3d36eec243b27dfd1ba73ff34, type: 3}
+  - {fileID: 21300000, guid: 0f20fd8318171a34d8c3972e5c547678, type: 3}
+  - {fileID: 21300000, guid: f3aa89b1c0cb9b343a626941adc2c502, type: 3}
+  - {fileID: 21300000, guid: 4c746adf68b06dd43bf41b01b850f404, type: 3}
+  - {fileID: 21300000, guid: ce1c48be05420724f9aa0c241a5e8457, type: 3}
 --- !u!222 &1506021510
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -7866,7 +7869,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: -110, y: 10}
-  m_SizeDelta: {x: 50, y: 50}
+  m_SizeDelta: {x: 90, y: 90}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1712194524
 MonoBehaviour:
