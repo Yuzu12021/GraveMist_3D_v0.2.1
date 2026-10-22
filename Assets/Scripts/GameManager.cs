@@ -49,16 +49,8 @@ public class GameManager : MonoBehaviour
     public string[] characterNames;             // キャラ名（今は未使用でもOK）
 
 
-    [System.Serializable]
-    public class PlayerEvolutionSprites
-    {
-        public Sprite level1;
-        public Sprite level2;
-        public Sprite level3;
-    }
-    [Header("Evolution Gauge Image Sprites")]
-    public Sprite evolutionInitialSprite; // sinka.png
-    public PlayerEvolutionSprites[] playerEvolutionSprites; // 1P〜4P
+    [Header("Shared Evolution Gauge Sprites (0-3)")]
+    public Sprite[] evolutionGaugeSprites = new Sprite[4];
 
     [Header("UI")]
     public GameObject dragArea;
@@ -597,34 +589,19 @@ public class GameManager : MonoBehaviour
 
     void RefreshEvolutionGauge(EvolutionGaugeUI gaugeUI, int playerIndex, int level)
     {
-        if (gaugeUI == null || gaugeUI.gaugeImage == null) return;
+        if (gaugeUI == null || gaugeUI.gaugeImage == null)
+            return;
 
-        level = Mathf.Clamp(level, 0, 3);
-
-        if (level == 0)
+        int index = Mathf.Clamp(level, 0, 3);
+        if (evolutionGaugeSprites == null ||
+            index >= evolutionGaugeSprites.Length ||
+            evolutionGaugeSprites[index] == null)
         {
-            gaugeUI.gaugeImage.sprite = evolutionInitialSprite;
-        }
-        else if (playerEvolutionSprites != null &&
-                 playerIndex >= 0 &&
-                 playerIndex < playerEvolutionSprites.Length)
-        {
-            PlayerEvolutionSprites sprites = playerEvolutionSprites[playerIndex];
-
-            switch (level)
-            {
-                case 1:
-                    gaugeUI.gaugeImage.sprite = sprites.level1;
-                    break;
-                case 2:
-                    gaugeUI.gaugeImage.sprite = sprites.level2;
-                    break;
-                case 3:
-                    gaugeUI.gaugeImage.sprite = sprites.level3;
-                    break;
-            }
+            Debug.LogWarning("[EvolutionUI] shinka_" + index + " sprite is not assigned.");
+            return;
         }
 
+        gaugeUI.gaugeImage.sprite = evolutionGaugeSprites[index];
         gaugeUI.gaugeImage.enabled = true;
         gaugeUI.gaugeImage.color = Color.white;
     }

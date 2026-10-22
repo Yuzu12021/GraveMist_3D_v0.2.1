@@ -1,16 +1,19 @@
 using UnityEngine;
-using TMPro;
+using UnityEngine.UI;
 
 public class MistInventoryUI : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private GameManager gameManager;
 
-    [Header("Mist Count Texts")]
-    [SerializeField] private TMP_Text redCountText;
-    [SerializeField] private TMP_Text blueCountText;
-    [SerializeField] private TMP_Text greenCountText;
-    [SerializeField] private TMP_Text yellowCountText;
+    [Header("Mist Count Images")]
+    [SerializeField] private Image redCountImage;
+    [SerializeField] private Image blueCountImage;
+    [SerializeField] private Image greenCountImage;
+    [SerializeField] private Image yellowCountImage;
+
+    [Header("Shared Count Sprites (0.png - 10.png)")]
+    [SerializeField] private Sprite[] countSprites = new Sprite[11];
 
     public void Refresh()
     {
@@ -18,28 +21,31 @@ public class MistInventoryUI : MonoBehaviour
             return;
 
         int playerIndex = gameManager.GetCurrentPlayerIndex();
-        Debug.Log(
-    $"[MistUIŠm”F] {gameObject.name} / " +
-    $"•\Ž¦‘ÎÛ={playerIndex + 1}P / " +
-    $"Ô={gameManager.GetMistColorCount(playerIndex, GameManager.MistColor.Red)} / " +
-    $"Â={gameManager.GetMistColorCount(playerIndex, GameManager.MistColor.Blue)} / " +
-    $"—Î={gameManager.GetMistColorCount(playerIndex, GameManager.MistColor.Green)} / " +
-    $"‰©={gameManager.GetMistColorCount(playerIndex, GameManager.MistColor.Yellow)}"
-);
-        if (redCountText != null)
-            redCountText.text = gameManager.GetMistColorCount(
-                playerIndex, GameManager.MistColor.Red).ToString();
 
-        if (blueCountText != null)
-            blueCountText.text = gameManager.GetMistColorCount(
-                playerIndex, GameManager.MistColor.Blue).ToString();
+        SetCountImage(redCountImage, gameManager.GetMistColorCount(
+            playerIndex, GameManager.MistColor.Red));
+        SetCountImage(blueCountImage, gameManager.GetMistColorCount(
+            playerIndex, GameManager.MistColor.Blue));
+        SetCountImage(greenCountImage, gameManager.GetMistColorCount(
+            playerIndex, GameManager.MistColor.Green));
+        SetCountImage(yellowCountImage, gameManager.GetMistColorCount(
+            playerIndex, GameManager.MistColor.Yellow));
+    }
 
-        if (greenCountText != null)
-            greenCountText.text = gameManager.GetMistColorCount(
-                playerIndex, GameManager.MistColor.Green).ToString();
+    private void SetCountImage(Image target, int count)
+    {
+        if (target == null || countSprites == null || countSprites.Length == 0)
+            return;
 
-        if (yellowCountText != null)
-            yellowCountText.text = gameManager.GetMistColorCount(
-                playerIndex, GameManager.MistColor.Yellow).ToString();
+        int index = Mathf.Clamp(count, 0, 10);
+        if (index >= countSprites.Length || countSprites[index] == null)
+        {
+            Debug.LogWarning("[MistInventoryUI] Missing count sprite: " + index + ".png");
+            return;
+        }
+
+        target.sprite = countSprites[index];
+        target.enabled = true;
+        target.color = Color.white;
     }
 }
