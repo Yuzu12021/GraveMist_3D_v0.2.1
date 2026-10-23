@@ -301,7 +301,8 @@ public class GameManager : MonoBehaviour
         RefreshAllPlayerUI();
         ShowCurrentPlayerPanelImmediate();
 
-        AudioManager.Instance.PlayBattleBGM();
+        // 旧BGM再生処理のためコメントアウト
+        // AudioManager.Instance.PlayBattleBGM();
     }
 
     void ValidateGameSessionData()

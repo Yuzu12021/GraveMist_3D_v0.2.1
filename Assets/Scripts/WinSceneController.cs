@@ -64,8 +64,10 @@ public class WinSceneController : MonoBehaviour
         }
 
         ShowResult();
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmFanfare, false);
+
+        // ä¸€æ™‚ã‚³ãƒ¡ãƒ³ãƒˆã‚¢ã‚¦ãƒˆ
+        // if (AudioManager.Instance != null)
+        //     AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmFanfare, false);
     }
 
     private static void SetSprite(Image image, Sprite[] sprites, int index)
@@ -123,7 +125,7 @@ public class WinSceneController : MonoBehaviour
         if (bottomRow != null)
             bottomRow.SetActive(count >= 3);
 
-        // 4P‚Ì˜g‚Í4lƒvƒŒƒC‚Ì‚Æ‚«‚¾‚¯•\Ž¦
+        // 4Pï¿½Ì˜gï¿½ï¿½4ï¿½lï¿½vï¿½ï¿½ï¿½Cï¿½Ì‚Æ‚ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½\ï¿½ï¿½
         if (playerSlotRoots != null && playerSlotRoots.Length >= 4)
         {
             if (playerSlotRoots[2] != null)

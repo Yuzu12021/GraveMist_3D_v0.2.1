@@ -4403,6 +4403,20 @@ MonoBehaviour:
   bgmMainMenu: {fileID: 8300000, guid: c21c8ff345c4a1347852cc5aa0222989, type: 3}
   bgmBattleIntro: {fileID: 8300000, guid: 98e2702a6c7fc3b43a45caf7cdadb75f, type: 3}
   bgmBattleMain: {fileID: 8300000, guid: a769ef297ae53e742ba96329bec30db5, type: 3}
+  bgmClips:
+  - key: Title
+    clip: {fileID: 8300000, guid: 33f95d55152b8124e847608af426d68d, type: 3}
+  - key: Menu
+    clip: {fileID: 8300000, guid: c21c8ff345c4a1347852cc5aa0222989, type: 3}
+  - key: Battle_SailorBoy
+    clip: {fileID: 8300000, guid: 08a392db5d5b59f4d99b0a8538273e43, type: 3}
+  - key: Battle_PoppingKitty
+    clip: {fileID: 8300000, guid: b89da5326883be843a58528ffbeac84c, type: 3}
+  - key: Battle_Theme
+    clip: {fileID: 8300000, guid: 05af96965610a6f4eae29570b6673719, type: 3}
+  - key: result
+    clip: {fileID: 8300000, guid: 91b40e979a1f0ce46adb28c8016aa19a, type: 3}
+  bgmFadeOutDuration: 0.3
   seSource: {fileID: 908045437}
   voiceSource: {fileID: 200138340}
   sounds:
