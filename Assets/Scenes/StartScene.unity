@@ -3346,10 +3346,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0cd44c1031e13a943bb63640046fad76, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_UiScaleMode: 0
+  m_UiScaleMode: 1
   m_ReferencePixelsPerUnit: 100
   m_ScaleFactor: 1
-  m_ReferenceResolution: {x: 1080, y: 1920}
+  m_ReferenceResolution: {x: 1640, y: 2360}
   m_ScreenMatchMode: 0
   m_MatchWidthOrHeight: 0.5
   m_PhysicalUnit: 3
@@ -4924,6 +4924,7 @@ MonoBehaviour:
   voiceVolumeSlider: {fileID: 381096457}
   seVolumePreviewClip: {fileID: 8300000, guid: bbbd3b0ba219e04439195583e0bad74c, type: 3}
   voiceVolumePreviewClip: {fileID: 8300000, guid: 5c72d5a36010e254884b51de9a02a7b7, type: 3}
+  cancelButton: {fileID: 0}
 --- !u!4 &1975835432
 Transform:
   m_ObjectHideFlags: 0
