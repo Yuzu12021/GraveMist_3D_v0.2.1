@@ -4408,15 +4408,25 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 33f95d55152b8124e847608af426d68d, type: 3}
   - key: Menu
     clip: {fileID: 8300000, guid: c21c8ff345c4a1347852cc5aa0222989, type: 3}
+  - key: result
+    clip: {fileID: 8300000, guid: 91b40e979a1f0ce46adb28c8016aa19a, type: 3}
+  - key: Battle_Theme
+    clip: {fileID: 8300000, guid: 05af96965610a6f4eae29570b6673719, type: 3}
   - key: Battle_SailorBoy
     clip: {fileID: 8300000, guid: 08a392db5d5b59f4d99b0a8538273e43, type: 3}
   - key: Battle_PoppingKitty
     clip: {fileID: 8300000, guid: b89da5326883be843a58528ffbeac84c, type: 3}
-  - key: Battle_Theme
-    clip: {fileID: 8300000, guid: 05af96965610a6f4eae29570b6673719, type: 3}
-  - key: result
-    clip: {fileID: 8300000, guid: 91b40e979a1f0ce46adb28c8016aa19a, type: 3}
-  bgmFadeOutDuration: 0.3
+  - key: Battle_KenCell
+    clip: {fileID: 8300000, guid: dffa5c5fa0bd36045b106326ec86963e, type: 3}
+  - key: Battle_CoolBizz
+    clip: {fileID: 8300000, guid: be153a47191b87b42ae08f752e75504a, type: 3}
+  - key: Battle_Yappy
+    clip: {fileID: 8300000, guid: 523ff43dc1b4d8e4ba228de08e2a15d2, type: 3}
+  - key: Battle_MineGirl
+    clip: {fileID: 8300000, guid: 968dacffa44baa04288534741da87d82, type: 3}
+  - key: Battle_
+    clip: {fileID: 8300000, guid: 213b69b27b7b4b140a35954072501f71, type: 3}
+  bgmFadeOutDuration: 0.5
   seSource: {fileID: 908045437}
   voiceSource: {fileID: 200138340}
   sounds:

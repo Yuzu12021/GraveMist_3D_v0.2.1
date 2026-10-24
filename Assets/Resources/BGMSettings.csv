@@ -1,7 +1,12 @@
 ﻿key,loopStart,loopEnd,group
 Title,4,102.5,Scene
 Menu,0,88.4,Scene
+result,,,Scene
+Battle_Theme,22.213,135.057,Battle
 Battle_SailorBoy,0,154.521,Battle
 Battle_PoppingKitty,15,148.2,Battle
-Battle_Theme,22.213,135.057,Battle
-result,,,Scene
+Battle_HollowClown,0,101.818,Battle
+Battle_KenCell,0,140.307,Battle
+Battle_Yappy,27.162,98.918,Battle
+Battle_MineGirl,11.202,77.504,Battle
+Battle_CoolBizz,14.187,101.187,Battle
