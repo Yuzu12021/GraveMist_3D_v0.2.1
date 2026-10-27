@@ -50,6 +50,18 @@ public class WinSceneController : MonoBehaviour
             int character = GameSession.PlayerCharacters[winner];
             SetSprite(winnerCharacterImage, characterPortraits, character);
             SetSprite(winnerCharacterNameImage, characterNameSprites, character);
+
+            // 勝ったプレイヤーキャラのボイス再生
+            if (AudioManager.Instance != null)
+            {
+                string prefix =
+                    AudioManager.Instance.GetCharacterVoicePrefix(character);
+            
+                if (!string.IsNullOrEmpty(prefix))
+                {
+                    AudioManager.Instance.PlayVoice(prefix + "_win");
+                }
+            }
         }
 
         for (int i = 0; i < playerSlotRoots.Length; i++)

@@ -60,10 +60,15 @@ public class AudioManager : MonoBehaviour
     [Header("SE / Voice")]
     public AudioSource seSource;
     public AudioSource voiceSource;
-
-    public static AudioManager Instance;
-
+    
+    // SE用の登録リスト（既存）
     public SoundEntry[] sounds;
+    
+    // VOICE用の登録リスト（追加）
+    public SoundEntry[] voiceSounds;
+
+    [Header("Voice Clips")]
+    public static AudioManager Instance;
 
     float bgmVolume = 0.3f;
     float seVolume = 0.5f;
@@ -276,12 +281,61 @@ public class AudioManager : MonoBehaviour
         if (voiceSource == null) return;
         if (clip == null) return;
         if (voiceVolume <= 0f) return;
-
+    
         voiceSource.Stop();
         voiceSource.PlayOneShot(clip, voiceVolume);
     }
 
-    // 追加分：BGM切り替え処理
+    // キーを指定してVOICEを再生する
+    public void PlayVoice(string key)
+    {
+        if (voiceSource == null) return;
+        if (voiceVolume <= 0f) return;
+    
+        if (voiceSounds == null)
+        {
+            Debug.LogWarning("VOICE登録リストがありません");
+            return;
+        }
+    
+        foreach (SoundEntry voice in voiceSounds)
+        {
+            if (voice != null &&
+                voice.key == key &&
+                voice.clip != null)
+            {
+                PlayVoiceClip(voice.clip);
+                return;
+            }
+        }
+    
+        Debug.LogWarning($"VOICEが見つかりません: {key}");
+    }
+
+    // GameSession.PlayerCharacters からキャラ番号を取得し、キーに用いる
+    public string GetCharacterVoicePrefix(int characterIndex)
+    {
+        switch (characterIndex)
+        {
+            case 0: return "MineGirl";
+            case 1: return "KillerWolf";
+            case 2: return "PoppingKitty";
+            case 3: return "SailorBoy";
+            case 4: return "Yappy";
+            case 5: return "KenCell";
+            case 6: return "CoolBizz";
+            case 7: return "HollowClown";
+            case 8: return "PilePuff";
+    
+            default:
+                Debug.LogWarning(
+                    $"VOICEのキャラクター番号が不正: {characterIndex}"
+                );
+                return null;
+        }
+    }
+
+    // BGM切り替え処理
     public void ChangeBGM(string key)
     {
         if (bgmSource == null)

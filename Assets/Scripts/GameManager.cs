@@ -1840,6 +1840,9 @@ public class GameManager : MonoBehaviour
         List<GraveFaceResult> graveResults =
             CalculateGraveResults();
 
+        // 出目確定VOICE
+        PlayGraveResultVoice(graveResults);
+
         // 出目確定SE
         PlayFaceDecidedSE();
 
@@ -1897,6 +1900,8 @@ public class GameManager : MonoBehaviour
                 "grave_miss"
             );
         }
+
+        PlayCurrentPlayerVoice("_roll0"); // 失敗ボイス
 
         // 出目・Mistは取得せず次のターンへ
         NextTurn();
@@ -2632,11 +2637,27 @@ public class GameManager : MonoBehaviour
             1
         );
 
+        // 進化のVOICE再生
+        if (AudioManager.Instance != null)
+        {
+            int characterIndex =
+                GameSession.PlayerCharacters[playerIndex];
+        
+            string prefix =
+                AudioManager.Instance.GetCharacterVoicePrefix(characterIndex);
+        
+            if (!string.IsNullOrEmpty(prefix))
+            {
+                AudioManager.Instance.PlayVoice(prefix + "_evo");
+            }
+        }
+
         int newLevel =
             GetPlayerEvolutionLevel(playerIndex);
 
 
         // Level3になった瞬間に勝利
+        // → 即勝利画面に移行するとなぜ勝ったかが分からないため、ウェイトを含めたい。
         if (newLevel >= 3)
         {
 
@@ -2777,5 +2798,97 @@ public class GameManager : MonoBehaviour
             currentPlayerPanel.SetActive(false);
 
         currentPlayerPanelFadeCoroutine = null;
+    }
+
+　　// プレイヤーのキャラクター名をVOICEのキー先頭に含める
+    void PlayCurrentPlayerVoice(string suffix)
+    {
+        if (AudioManager.Instance == null)
+            return;
+    
+        if (GameSession.PlayerCharacters == null ||
+            currentPlayerIndex < 0 ||
+            currentPlayerIndex >= GameSession.PlayerCharacters.Length)
+            return;
+    
+        int characterIndex =
+            GameSession.PlayerCharacters[currentPlayerIndex];
+    
+        string prefix =
+            AudioManager.Instance.GetCharacterVoicePrefix(characterIndex);
+    
+        if (string.IsNullOrEmpty(prefix))
+            return;
+    
+        AudioManager.Instance.PlayVoice(prefix + suffix);
+    }
+
+    // グレイブの出目に応じたVOICEの再生
+    void PlayGraveResultVoice(List<GraveFaceResult> results)
+    {
+        if (results == null || results.Count == 0)
+            return;
+    
+        // 逆立ちが1つでもあれば最優先
+        if (results.Contains(GraveFaceResult.Reverse))
+        {
+            PlayCurrentPlayerVoice("_roll5");
+            return;
+        }
+    
+        bool hasSide =
+            results.Contains(GraveFaceResult.Side);
+    
+        bool hasVertical =
+            results.Contains(GraveFaceResult.Vertical);
+    
+        if (hasSide || hasVertical)
+        {
+            // 横面のみならroll3、縦面のみならroll4。
+            // 両方含まれる場合は、どちらかをランダム再生。
+            if (hasSide && hasVertical)
+            {
+                PlayCurrentPlayerVoice(
+                    UnityEngine.Random.Range(0, 2) == 0
+                        ? "_roll3"
+                        : "_roll4"
+                );
+            }
+            else if (hasSide)
+            {
+                PlayCurrentPlayerVoice("_roll3");
+            }
+            else
+            {
+                PlayCurrentPlayerVoice("_roll4");
+            }
+    
+            return;
+        }
+    
+        bool hasFront =
+            results.Contains(GraveFaceResult.Front);
+    
+        bool hasBack =
+            results.Contains(GraveFaceResult.Back);
+    
+        // 表・裏のみの場合
+        if (hasFront && hasBack)
+        {
+            // 表と裏が混在する場合は、どちらかをランダム再生
+            PlayCurrentPlayerVoice(
+                UnityEngine.Random.Range(0, 2) == 0
+                    ? "_roll1"
+                    : "_roll2"
+            );
+        }
+        else if (hasFront)
+        {
+            PlayCurrentPlayerVoice("_roll1");
+        }
+        else if (hasBack)
+        {
+            PlayCurrentPlayerVoice("_roll2");
+        }
     }
 }
