@@ -57,6 +57,7 @@ public class PlayerController : MonoBehaviour
                 return CharacterWorld.Marchen;
 
             case 7: // ホロウクラウン
+            case 8: // パイルパフ
                 return CharacterWorld.Ethnic;
 
             default:

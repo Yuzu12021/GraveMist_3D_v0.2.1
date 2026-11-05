@@ -50,6 +50,18 @@ public class WinSceneController : MonoBehaviour
             int character = GameSession.PlayerCharacters[winner];
             SetSprite(winnerCharacterImage, characterPortraits, character);
             SetSprite(winnerCharacterNameImage, characterNameSprites, character);
+
+            // Âãù„Å£„Åü„Éó„É¨„Ç§„É§„Éº„Ç≠„É£„É©„ÅÆ„Éú„Ç§„ÇπÂÜçÁîü
+            if (AudioManager.Instance != null)
+            {
+                string prefix =
+                    AudioManager.Instance.GetCharacterVoicePrefix(character);
+            
+                if (!string.IsNullOrEmpty(prefix))
+                {
+                    AudioManager.Instance.PlayVoice(prefix + "_win");
+                }
+            }
         }
 
         for (int i = 0; i < playerSlotRoots.Length; i++)
@@ -64,8 +76,10 @@ public class WinSceneController : MonoBehaviour
         }
 
         ShowResult();
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmFanfare, false);
+
+        // ‰∏ÄÊôÇ„Ç≥„É°„É≥„Éà„Ç¢„Ç¶„Éà
+        // if (AudioManager.Instance != null)
+        //     AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmFanfare, false);
     }
 
     private static void SetSprite(Image image, Sprite[] sprites, int index)
@@ -123,7 +137,7 @@ public class WinSceneController : MonoBehaviour
         if (bottomRow != null)
             bottomRow.SetActive(count >= 3);
 
-        // 4PÇÃògÇÕ4êlÉvÉåÉCÇÃÇ∆Ç´ÇæÇØï\é¶
+        // 4PÔøΩÃògÔøΩÔøΩ4ÔøΩlÔøΩvÔøΩÔøΩÔøΩCÔøΩÃÇ∆ÇÔøΩÔøΩÔøΩÔøΩÔøΩÔøΩ\ÔøΩÔøΩ
         if (playerSlotRoots != null && playerSlotRoots.Length >= 4)
         {
             if (playerSlotRoots[2] != null)

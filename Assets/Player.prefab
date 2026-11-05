@@ -187,25 +187,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cyberSprites:
-    player1: {fileID: 21300000, guid: 642b11184fd58ee4c8da9629c74de9e3, type: 3}
-    player2: {fileID: 21300000, guid: 9fb482c148df2d045b6b068febb99fd3, type: 3}
-    player3: {fileID: 21300000, guid: 48adaad777a94384bab2ab96b39607b9, type: 3}
-    player4: {fileID: 21300000, guid: d42e2202a40a39042bda245f47a9515b, type: 3}
+    player1: {fileID: 21300000, guid: 2955a8860b1cbc647b55213fd6cc0666, type: 3}
+    player2: {fileID: 21300000, guid: e98e865a7c0d1734b9b6be0f05dd67d3, type: 3}
+    player3: {fileID: 21300000, guid: a115e0b3435e7a24ebc442f5542f34c8, type: 3}
+    player4: {fileID: 21300000, guid: c96fc380f34948f458f51535a27dca63, type: 3}
   hydroSprites:
-    player1: {fileID: 21300000, guid: 1bb80062eadc10e47a5929d9d8dc1d76, type: 3}
-    player2: {fileID: 21300000, guid: 52a2f1add6809cc4e827b603e8de8e94, type: 3}
-    player3: {fileID: 21300000, guid: d5c8acfb98c4ec549beb4777741c1f70, type: 3}
-    player4: {fileID: 21300000, guid: 60625292fa34751469cf18696ba3a7b8, type: 3}
+    player1: {fileID: 21300000, guid: 2955a8860b1cbc647b55213fd6cc0666, type: 3}
+    player2: {fileID: 21300000, guid: e98e865a7c0d1734b9b6be0f05dd67d3, type: 3}
+    player3: {fileID: 21300000, guid: a115e0b3435e7a24ebc442f5542f34c8, type: 3}
+    player4: {fileID: 21300000, guid: c96fc380f34948f458f51535a27dca63, type: 3}
   marchenSprites:
-    player1: {fileID: 21300000, guid: ae85f83e3997df5468a7dfe65fc1ad07, type: 3}
-    player2: {fileID: 21300000, guid: 0a7905569764b1d45a4674d6265badf0, type: 3}
-    player3: {fileID: 21300000, guid: fc5762148e444e346abedb02fc5b0d3e, type: 3}
-    player4: {fileID: 21300000, guid: 4b778b2e6eeec6a4e8a78f9ee3169070, type: 3}
+    player1: {fileID: 21300000, guid: 2955a8860b1cbc647b55213fd6cc0666, type: 3}
+    player2: {fileID: 21300000, guid: e98e865a7c0d1734b9b6be0f05dd67d3, type: 3}
+    player3: {fileID: 21300000, guid: a115e0b3435e7a24ebc442f5542f34c8, type: 3}
+    player4: {fileID: 21300000, guid: c96fc380f34948f458f51535a27dca63, type: 3}
   ethnicSprites:
-    player1: {fileID: 21300000, guid: a3ebf1830593288418f996c3dc5f29b1, type: 3}
-    player2: {fileID: 21300000, guid: 843fe2a4e12be40439fe20e607c2faf5, type: 3}
-    player3: {fileID: 21300000, guid: 6202a9b869f6eca47a0bafc7b38ad627, type: 3}
-    player4: {fileID: 21300000, guid: 1de490baa19f0b94fa1a770663b03f67, type: 3}
+    player1: {fileID: 21300000, guid: 2955a8860b1cbc647b55213fd6cc0666, type: 3}
+    player2: {fileID: 21300000, guid: e98e865a7c0d1734b9b6be0f05dd67d3, type: 3}
+    player3: {fileID: 21300000, guid: a115e0b3435e7a24ebc442f5542f34c8, type: 3}
+    player4: {fileID: 21300000, guid: c96fc380f34948f458f51535a27dca63, type: 3}
   playerIndex: 0
   characterIndex: -1
   playerSpriteRenderer: {fileID: 525728985904730910}

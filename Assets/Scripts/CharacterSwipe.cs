@@ -24,6 +24,10 @@ public class CharacterSwipe : MonoBehaviour
     public float centerScale = 1.2f;
     public float sideScale = 0.9f;
 
+    [Header("Character Select Voice")]
+    [Tooltip("選択ボイスの音声ファイル名（拡張子なし）。例：select.wav なら select")]
+    public string characterSelectVoiceSuffix = "select";
+
     [Header("Select Animation")]
     public float selectMoveY = 140f;
     public float selectDuration = 0.2f;
@@ -57,7 +61,7 @@ public class CharacterSwipe : MonoBehaviour
 
         basePositions = new Vector2[displaySlots.Length];
 
-        // CharacterBar S ??Y
+        // CharacterBar S ???Y
         float fixedY = displaySlots[CENTER_SLOT].anchoredPosition.y;
 
         for (int i = 0; i < displaySlots.Length; i++)
@@ -195,7 +199,7 @@ public class CharacterSwipe : MonoBehaviour
         touching = true;
 
         //  X   C v J n   _ ?A
-        //  SDisplaySlot  Y   W    ?u ??  ?   
+        //  SDisplaySlot  Y   W   ? ?u ??  ?   
         LockDisplaySlotsToHorizontalLine();
 
         //   X   C v    ?\ ?? 
@@ -390,7 +394,7 @@ public class CharacterSwipe : MonoBehaviour
 
 
         //    ?  J n O ? 
-        // Y ?u       I ? ?? 
+        // Y ?u       I ?? ?? 
         LockDisplaySlotsToHorizontalLine();
 
 
@@ -508,16 +512,9 @@ public class CharacterSwipe : MonoBehaviour
         NotifyCenterCharacter();
 
         // スワイプ完了時、中央に来たキャラクターのCVを1回再生
-        if (flow != null && AudioManager.Instance != null &&
-            flow.characterSelectVoices != null &&
-            selectedCharacterIndex >= 0 &&
-            selectedCharacterIndex < flow.characterSelectVoices.Length)
-        {
-            AudioClip voice = flow.characterSelectVoices[selectedCharacterIndex];
-            if (voice != null)
-                AudioManager.Instance.PlayVoiceClip(voice);
-        }
+        PlayCharacterSelectVoice();
 
+        // SE
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlaySE(
@@ -525,9 +522,33 @@ public class CharacterSwipe : MonoBehaviour
             );
         }
 
-
         isAnimating = false;
     }
+
+    // 自動登録されたVOICEから、現在選択中キャラクターの選択ボイスを再生します
+    // キー形式は「キャラクターフォルダー名_音声ファイル名」
+    void PlayCharacterSelectVoice()
+    {
+        if (AudioManager.Instance == null)
+        {
+            Debug.LogWarning("AudioManager.Instance が見つからないため、選択ボイスを再生できません。");
+            return;
+        }
+
+        string characterPrefix =
+            AudioManager.Instance.GetCharacterVoicePrefix(selectedCharacterIndex);
+
+        if (string.IsNullOrWhiteSpace(characterPrefix) ||
+            string.IsNullOrWhiteSpace(characterSelectVoiceSuffix))
+        {
+            Debug.LogWarning("選択ボイスのキャラクター名またはファイル名が設定されていません。");
+            return;
+        }
+
+        string voiceKey = $"{characterPrefix}_{characterSelectVoiceSuffix}";
+        AudioManager.Instance.PlayVoice(voiceKey);
+    }
+
 
 
     // =========================================================

@@ -131,11 +131,13 @@ public class GameFlowController : MonoBehaviour
             int w = GameSession.WinnerIndex;
             winnerText.text = (w < 0) ? "Winner: ?" : $"{w + 1}P の勝利！";
 
-            AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmFanfare, false);
+            // 一時コメントアウト
+            // AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmFanfare, false);
         }
         else
         {
-            AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmMainMenu, true);
+            // 一時コメントアウト
+            // AudioManager.Instance.PlayBGM(AudioManager.Instance.bgmMainMenu, true);
         }
 
         if (settingsPanel != null)

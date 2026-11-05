@@ -3043,6 +3043,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 9d8948c3d87e9ed41b05feb90dcd2d7e, type: 3}
   - {fileID: 21300000, guid: 640003457f2fd544ab61dce5afd2bee0, type: 3}
   - {fileID: 21300000, guid: 860c6a52e27a1ce4ab4d8012c003541c, type: 3}
+  - {fileID: 21300000, guid: f43bdaf65e95c1648b59367da8ef9829, type: 3}
   horizontalThreshold: 80
   moveDuration: 0.2
   centerScale: 1.2
@@ -3615,15 +3616,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
+  m_Sprite: {fileID: 21300000, guid: 4dba749ee4889964ca6df1d1760c5001, type: 3}
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
@@ -4626,6 +4627,8 @@ MonoBehaviour:
   bgmMainMenu: {fileID: 8300000, guid: c21c8ff345c4a1347852cc5aa0222989, type: 3}
   bgmBattleIntro: {fileID: 8300000, guid: 98e2702a6c7fc3b43a45caf7cdadb75f, type: 3}
   bgmBattleMain: {fileID: 8300000, guid: a769ef297ae53e742ba96329bec30db5, type: 3}
+  bgmClips: []
+  bgmFadeOutDuration: 1.5
   seSource: {fileID: 18899044}
   voiceSource: {fileID: 714227946}
   sounds:
@@ -6200,6 +6203,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 226ba54820a20994983ccb57c46bf61c, type: 3}
   - {fileID: 21300000, guid: b15829a23b561a9498b8e476ef177453, type: 3}
   - {fileID: 21300000, guid: 5196ee08a186fa842b9796f01e7b94c6, type: 3}
+  - {fileID: 21300000, guid: ce9d3a735a47d2d4ebefe2402678317b, type: 3}
   characterIcons:
   - {fileID: 21300000, guid: 0b724a93d07677f45a587e0743202415, type: 3}
   - {fileID: 21300000, guid: 53652d9fbf2fcdc4eab967b87bc121fd, type: 3}
@@ -6209,6 +6213,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: b8cd77abeccc174428bd1e5726dd4834, type: 3}
   - {fileID: 21300000, guid: cb45fdc5399cd1b46be91e085b6f7db2, type: 3}
   - {fileID: 21300000, guid: 6f0dc80984b5442419ea5852ce8f9654, type: 3}
+  - {fileID: 21300000, guid: f47aeffb5f019b3448cbfcd5c5daaf64, type: 3}
   characterNameSprites:
   - {fileID: 21300000, guid: 76b0503bc3de5cc429ff01a8e42c2cc1, type: 3}
   - {fileID: 21300000, guid: 878a3081a98470f4c866ff153be3811e, type: 3}
@@ -6218,6 +6223,7 @@ MonoBehaviour:
   - {fileID: 21300000, guid: bb5fd70b1b9b85a4989ac73b1648e008, type: 3}
   - {fileID: 21300000, guid: 6896a142b87d8e843a4afb585d750366, type: 3}
   - {fileID: 21300000, guid: bd4a4074c7e29e646a34336ab7156b6a, type: 3}
+  - {fileID: 21300000, guid: fe59b7c9268865640b91e592c36c85a3, type: 3}
   previewAnimDuration: 0.3
   previewMinScale: 0.5
   previewMaxScale: 1.08
@@ -6230,6 +6236,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: d78ad904730af254bb013a1d9c0c01b3, type: 3}
   - {fileID: 8300000, guid: 2fc71112b69e08d408fe2600862388af, type: 3}
   - {fileID: 8300000, guid: 71a1842271e9b844fa162556e45a0d5c, type: 3}
+  - {fileID: 8300000, guid: 854f293517e4af445a1c85d9957c70f0, type: 3}
   currentCharacter: 0
   settingsMenuPanel: {fileID: 2097389429}
   playerCountPanel: {fileID: 656957488}
